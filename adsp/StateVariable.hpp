@@ -404,7 +404,7 @@ private:
 
       Vec const in = input[i];
 
-      // Mistran's cheap method, solving for antisaturated bandpass "u"
+      // Mystran's cheap method, solving for antisaturated bandpass "u"
 
       Vec sigma = saturationGain(u); // saturate(u)/u
 
