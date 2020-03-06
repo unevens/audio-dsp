@@ -208,10 +208,10 @@ private:
       prevr = select(increasing, resa, prevr);
 
       if constexpr (outputInDB) {
-        output[i] = to_db_coef * log(out + std::numeric_limits<float>::min());
+        output[i] = to_db_coef * log(prevr + std::numeric_limits<float>::min());
       }
       else {
-        output[i] = out;
+        output[i] = prevr;
       }
     }
 
