@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 #pragma once
-#include "adsp/xorshift32_16bit_simd.h"
+#include "adsp/xorshift32_16bit_simd.hpp"
 #include "avec/Avec.hpp"
 
 namespace adsp {

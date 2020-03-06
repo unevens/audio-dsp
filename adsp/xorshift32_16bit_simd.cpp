@@ -8,7 +8,10 @@ This implementation uses SIMD instructions to compute 4 independent random
 numbers at the same time, and store them into a buffer of interleaved channels,
 in order to generate 4 channels of white noise, each with its own seed.
 
-Author: Dario Mambro @ https://github.com/unevens/xorshift32_16bit_simd
+A version of this file in C is available at
+https://github.com/unevens/xorshift32_16bit_simd
+
+Author: Dario Mambro
 */
 
 /*
@@ -34,7 +37,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
 */
 
-#include "adsp/xorshift32_16bit_simd.h"
+#include "adsp/xorshift32_16bit_simd.hpp"
 #include <immintrin.h>
 
 #define PXORSHIFT3216(x)                                                       \
@@ -66,6 +69,8 @@ For more information, please refer to <http://unlicense.org/>
     *xs = _mm_add_ps(_mm_mul_ps(xf, _mm_set1_ps(2.0f / 65535.f)),              \
                      _mm_set1_ps(-1.f));                                       \
   }
+
+namespace adsp {
 
 void
 xorshift32_16bit_simd_f4(uint16_t* state, float* output, int numSamples)
@@ -120,13 +125,4 @@ xorshift32_16bit_simd_i4(uint16_t* state, int* output, int numSamples)
   _mm_store_si128((__m128i*)state, x);
 }
 
-// reference
-// https://b2d-f9r.blogspot.com/2010/08/16-bit-xorshift-rng-now-with-more.html
-static inline uint16_t
-rnd_xorshift_32()
-{
-  static uint16_t x = 1, y = 1;
-  uint16_t t = (x ^ (x << 5));
-  x = y;
-  return y = (y ^ (y >> 1)) ^ (t ^ (t >> 3));
-}
+} // namespace adsp
