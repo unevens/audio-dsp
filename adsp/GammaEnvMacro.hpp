@@ -2,8 +2,7 @@
  * Simd implementation of Aleksey Vaneev's https://github.com/avaneev/gammaenv
  *
  * Differences from the original:
- * - output is in dB,
- * - does peak/rms computation
+ * - does peak/rms computation and can compute the output in dB
  * - IsIverse is not supported
  * - Attack and Release are not in seconds but in angular frequency units
  * (2*pi/(samplerate*seconds))
@@ -59,7 +58,7 @@
     gamma##_envr[i] = Vec().load_a(gamma->envr_ + i * Vec::size());            \
   }
 
-#define COMPUTE_GAMMAENV(gamma, Vec, in, out)                                  \
+#define COMPUTE_GAMMAENV(gamma, Vec, in, out, outputDB)                        \
   {                                                                            \
     Vec v = select(gamma##_rms, in * in, abs(in));                             \
     gamma##_env[0] += (v - gamma##_env[0]) * gamma##_enva[0];                  \
@@ -112,8 +111,14 @@
                                                                                \
     gamma##_envr5 = select(increasing, resa, gamma##_envr5);                   \
     gamma##_prevr = select(increasing, resa, gamma##_prevr);                   \
-    out = gamma##_to_db_coef *                                                 \
-          log(gamma##_prevr + std::numeric_limits<float>::min());              \
+                                                                               \
+    if constexpr (outputDB) {                                                  \
+      out = gamma##_to_db_coef *                                               \
+            log(gamma##_prevr + std::numeric_limits<float>::min());            \
+    }                                                                          \
+    else {                                                                     \
+      out = gamma##_prevr;                                                     \
+    }                                                                          \
   }
 
 #define STORE_GAMMAENV_STATE(gamma, Vec)                                       \

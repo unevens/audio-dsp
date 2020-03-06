@@ -2,8 +2,7 @@
  * Simd implementation of Aleksey Vaneev's https://github.com/avaneev/gammaenv
  *
  * Differences from the original:
- * - output is in dB,
- * - does peak/rms computation
+ * - does peak/rms computation and can compute the output in dB
  * - IsIverse is not supported
  * - Attack and Release are not in seconds but in angular frequency units
  * (2*pi/(samplerate*seconds))
@@ -93,6 +92,8 @@ struct GammaEnv final
 
   Scalar useRms[Vec::size()];
 
+  GammaEnv() { AVEC_ASSERT_ALIGNMENT(this, Vec); }
+
   void reset(double initv = 0.0)
   {
     std::fill_n(&env_[0], 16 * Vec::size(), initv);
@@ -105,6 +106,36 @@ struct GammaEnv final
   void processBlock(VecBuffer<Vec> const& input,
                     VecBuffer<Vec>& output,
                     int numSamples)
+  {
+    processBlock_<0>(input, output, numSamples);
+  }
+
+  void processBlockSymm(VecBuffer<Vec> const& input,
+                        VecBuffer<Vec>& output,
+                        int numSamples)
+  {
+    processBlockSymm_<0>(input, output, numSamples);
+  }
+
+  void processBlockDB(VecBuffer<Vec> const& input,
+                      VecBuffer<Vec>& output,
+                      int numSamples)
+  {
+    processBlock_<1>(input, output, numSamples);
+  }
+
+  void processBlockSymmDB(VecBuffer<Vec> const& input,
+                          VecBuffer<Vec>& output,
+                          int numSamples)
+  {
+    processBlockSymm_<1>(input, output, numSamples);
+  }
+
+private:
+  template<int outputInDB = 0>
+  void processBlock_(VecBuffer<Vec> const& input,
+                     VecBuffer<Vec>& output,
+                     int numSamples)
   {
     Vec env[16];
     Vec enva[4];
@@ -176,7 +207,12 @@ struct GammaEnv final
       envr5 = select(increasing, resa, envr5);
       prevr = select(increasing, resa, prevr);
 
-      output[i] = to_db_coef * log(prevr + std::numeric_limits<float>::min());
+      if constexpr (outputInDB) {
+        output[i] = to_db_coef * log(out + std::numeric_limits<float>::min());
+      }
+      else {
+        output[i] = out;
+      }
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -194,9 +230,10 @@ struct GammaEnv final
     prevr.store_a(prevr_);
   }
 
-  void processBlockSymm(VecBuffer<Vec> const& input,
-                        VecBuffer<Vec>& output,
-                        int numSamples)
+  template<int outputInDB = 0>
+  void processBlockSymm_(VecBuffer<Vec> const& input,
+                         VecBuffer<Vec>& output,
+                         int numSamples)
   {
     Vec env[16];
     Vec enva[4];
@@ -233,7 +270,13 @@ struct GammaEnv final
       }
 
       Vec out = (env[i - 4] + env[i - 3] + env[i - 2] - env[i - 1] - env5);
-      output[i] = to_db_coef * log(out + std::numeric_limits<float>::min());
+
+      if constexpr (outputInDB) {
+        output[i] = to_db_coef * log(out + std::numeric_limits<float>::min());
+      }
+      else {
+        output[i] = out;
+      }
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -245,8 +288,6 @@ struct GammaEnv final
     env5.store_a(env5_);
     enva5.store_a(enva5_);
   }
-
-  GammaEnv() { AVEC_ASSERT_ALIGNMENT(this, Vec); }
 };
 
 template<class Vec>
