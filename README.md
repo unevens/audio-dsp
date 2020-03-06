@@ -28,6 +28,8 @@ The file `Noise.hpp` implements a (white) noise generator.
 It uses [a SIMD implementation](https://github.com/unevens/xorshift32_16bit_simd) of a [16 bit xorshift32 random number generator](https://b2d-f9r.blogspot.com/2010/08/16-bit-xorshift-rng-now-with-more.html
 ), to generate 4 samples of noise in parallel. 
 
+It is the only part of *adsp* which is not header only, as it needs the file `xorshift32_16bit_simd.c` to be compiled.
+
 ## OnePole 
 
 The file `OnePole.hpp` implements simple one pole filters, also as described in *The art of VA filter design*.
@@ -36,7 +38,6 @@ The file `OnePole.hpp` implements simple one pole filters, also as described in 
 
 The file `SimpleHighPass.hpp` implements naive one pole high pass filter, suitable for DC removal.
 
-It is the only part of *avec* which is not header only, as it needs to compile the file `xorshift32_16bit_simd.c`.
 
 ## Biquad Filters
 
