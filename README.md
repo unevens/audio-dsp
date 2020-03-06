@@ -2,7 +2,7 @@
 
 *adsp* is a collection of template classes for audio dsp using SIMD instructions for x86 processors.
  
-Each tempalte class abstracts over the many SIMD instructions sets, and will choose what it's better suited for the architecture it is compiled for, given the number of audio channel you want to process in parallel and the floating point precision that you specify.
+Each template class abstracts over the many SIMD instructions sets, and will choose what it's better suited for the architecture it is compiled for, given the number of audio channel you want to process in parallel and the floating point precision that you specify.
 
 *adsp* depends on [*avec*](https://github.com/unevens/avec), a library that wraps Agner Fog's [vectorclass](https://github.com/vectorclass/version2), and provides containers and views over aligned memory.
 
