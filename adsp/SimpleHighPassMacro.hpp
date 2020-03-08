@@ -17,8 +17,6 @@ limitations under the License.
 #pragma once
 #include "adsp/SimpleHighPass.hpp"
 
-// simple high pass
-
 #define LOAD_SIMPLE_HIGH_PASS(filter, Vec)                                     \
   Vec filter##_in_mem = Vec().load_a(filter->inputMemory);                     \
   Vec filter##_out_mem = Vec().load_a(filter->outputMemory);                   \
