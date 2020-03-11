@@ -19,11 +19,7 @@ limitations under the License.
 
 namespace adsp {
 
-template<class Vec>
-struct SplineInterface;
-
-template<class Vec>
-struct SplineAutomatorInterface;
+// some forward declarations
 
 template<class Vec, int numKnots_>
 struct Spline;
@@ -31,6 +27,15 @@ struct Spline;
 template<class Vec, int numKnots_>
 struct SplineAutomator;
 
+template<class Vec>
+struct SplineInterface;
+
+template<class Vec>
+struct SplineAutomatorInterface;
+
+/**
+ * An interface for the Splines, abastracting over the number of knots.
+ */
 template<class Vec>
 struct SplineInterface
 {
@@ -64,6 +69,9 @@ struct SplineInterface
   virtual ~SplineInterface() {}
 };
 
+/**
+ * An interface for the SplineAutomators, abastracting over the number of knots.
+ */
 template<class Vec>
 struct SplineAutomatorInterface
 {
@@ -80,6 +88,9 @@ struct SplineAutomatorInterface
   virtual ~SplineAutomatorInterface() {}
 };
 
+/**
+ * A class to evaluate a cubic Hermite spline with a given number of knots.
+ */
 template<class Vec, int numKnots_>
 struct Spline final : public SplineInterface<Vec>
 {
@@ -128,6 +139,9 @@ struct Spline final : public SplineInterface<Vec>
   }
 };
 
+/**
+ * A class to smoothly automate the knots of a Spline.
+ */
 template<class Vec, int numKnots_>
 struct SplineAutomator final : public SplineAutomatorInterface<Vec>
 {
@@ -163,6 +177,9 @@ struct SplineAutomator final : public SplineAutomatorInterface<Vec>
   }
 };
 
+/**
+ * A class to hold Spline objects with knots from 1 to a specified amount.
+ */
 template<class Vec>
 struct SplineHolder final
 {
@@ -195,6 +212,9 @@ struct SplineHolder final
   static SplineHolder make(bool makeAutomators);
 };
 
+/**
+ * A class to initializa a SplineHolder with Spline objects.
+ */
 template<class Vec, int maxNumKnots>
 struct SplineFactory
 {
@@ -227,6 +247,8 @@ struct SplineFactory
   }
 };
 
+// implementation
+
 template<class Vec>
 struct SplineFactory<Vec, 0>
 {
@@ -256,8 +278,6 @@ SplineHolder<Vec>::make(bool makeAutomators)
 {
   return SplineFactory<Vec, numKnots>::make(makeAutomators);
 }
-
-// implementation
 
 template<class Vec, int numKnots_>
 inline void
