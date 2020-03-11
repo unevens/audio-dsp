@@ -46,7 +46,7 @@ class VecBiquadFilterInterface
 public:
   virtual void reset(int channel) = 0;
   virtual void reset() = 0;
-  virtual void setup(int channel, bool reset, bool automate = true) = 0;
+  virtual void setup(int channel) = 0;
   virtual void setFrequency(int channel, double value) = 0;
   virtual void setFrequency(double value) = 0;
   virtual void setGain(int channel, double value) = 0;
@@ -86,7 +86,7 @@ public:
                   double frequency_ = 0.1,
                   double quality_ = 0.79,
                   double gain_ = 0.0)
-    : buffer(12 * Vec::size())
+    : buffer(7 * Vec::size())
     , isSetupNeeded(Vec::size(), 0)
   {
     std::fill(filterType.begin(), filterType.end(), filterType_);
@@ -114,56 +114,16 @@ public:
     Vec prev0 = buffer[5];
     Vec prev1 = buffer[6];
 
-    if (!isAutomating) {
-      for (int i = 0; i < numSamples; ++i) {
-        Vec in = input[i];
-        Vec next_buffer_0 = in - a1 * prev0 - a2 * prev1;
-        Vec out = b0 * next_buffer_0 + b1 * prev0 + b2 * prev1;
-        prev1 = prev0;
-        prev0 = next_buffer_0;
-        output[i] = out;
-      }
-      buffer[5] = prev0;
-      buffer[6] = prev1;
+    for (int i = 0; i < numSamples; ++i) {
+      Vec in = input[i];
+      Vec next_buffer_0 = in - a1 * prev0 - a2 * prev1;
+      Vec out = b0 * next_buffer_0 + b1 * prev0 + b2 * prev1;
+      prev1 = prev0;
+      prev0 = next_buffer_0;
+      output[i] = out;
     }
-    else {
-      isAutomating = false;
-
-      Vec a1_aut = buffer[7];
-      Vec a2_aut = buffer[8];
-      Vec b0_aut = buffer[9];
-      Vec b1_aut = buffer[10];
-      Vec b2_aut = buffer[11];
-      Vec prev0_aut = 0.0;
-      Vec prev1_aut = 0.0;
-
-      Vec alpha = 0.f;
-      Vec inc = 1.f / (float)numSamples;
-
-      for (int i = 0; i < numSamples; ++i) {
-        Vec in = input[i];
-
-        Vec next_buffer_0 = in - a1 * prev0 - a2 * prev1;
-        Vec out = b0 * next_buffer_0 + b1 * prev0 + b2 * prev1;
-        prev1 = prev0;
-        prev0 = next_buffer_0;
-
-        Vec next_buffer_0_aut = in - a1_aut * prev0_aut - a2_aut * prev1_aut;
-        Vec out_aut =
-          b0_aut * next_buffer_0_aut + b1_aut * prev0_aut + b2_aut * prev1_aut;
-        prev1_aut = prev0_aut;
-        prev0_aut = next_buffer_0_aut;
-
-        output[i] = out + alpha * (out_aut - out);
-        alpha += inc;
-      }
-
-      std::copy(&buffer(7 * Vec::size()),
-                &buffer(7 * Vec::size()) + 5 * Vec::size(),
-                &buffer(0));
-      buffer[5] = prev0_aut;
-      buffer[6] = prev1_aut;
-    }
+    buffer[5] = prev0;
+    buffer[6] = prev1;
   }
 
   /**
@@ -174,12 +134,6 @@ public:
   {
     buffer[5] = 0.0;
     buffer[6] = 0.0;
-    if (isAutomating) {
-      isAutomating = false;
-      std::copy(&buffer(7 * Vec::size()),
-                &buffer(7 * Vec::size()) + 5 * Vec::size(),
-                &buffer(0));
-    }
   }
 
   /**
@@ -191,11 +145,6 @@ public:
   {
     buffer[5][channel] = 0.0;
     buffer[6][channel] = 0.0;
-    if (isAutomating) {
-      for (int i = 0; i < 5; ++i) {
-        buffer[i] = buffer[7 + i];
-      }
-    }
   }
 
   /**
@@ -337,12 +286,8 @@ public:
   /**
    * Computes the filter coefficients for a specified channel.
    * @param channel the channel to compute the coefficients the coeffcient for
-   * @param reset if true, resets the state of filter, calling reset(). false by
-   * default.
-   * @param automate if true, as it is by default, the filter will use the next
-   * process block call to smooth between its current state and the new state.
    */
-  void setup(int channel, bool reset = false, bool automate = true) override
+  void setup(int channel) override
   {
     isSetupNeeded[channel] = false;
 
@@ -425,39 +370,22 @@ public:
         assert(false);
     }
 
-    if (automate) {
-      buffer[7][channel] = a1;
-      buffer[8][channel] = a2;
-      buffer[9][channel] = b0;
-      buffer[10][channel] = b1;
-      buffer[11][channel] = b2;
-      isAutomating = true;
-    }
-    else {
-      buffer[0][channel] = a1;
-      buffer[1][channel] = a2;
-      buffer[2][channel] = b0;
-      buffer[3][channel] = b1;
-      buffer[4][channel] = b2;
-    }
+    buffer[0][channel] = a1;
+    buffer[1][channel] = a2;
+    buffer[2][channel] = b0;
+    buffer[3][channel] = b1;
+    buffer[4][channel] = b2;
 
-    if (reset) {
-      reset(channel);
-    }
+    reset(channel);
   }
 
   /**
    * Computes the filter coefficients.
-   * @param reset if true resets the state of filter, calling reset(). false by
-   * default.
    */
-  void setup(bool reset = false)
+  void setup()
   {
     for (int i = 0; i < Vec::size(); ++i) {
-      setup(i, false);
-    }
-    if (reset) {
-      reset();
+      setup(i);
     }
   }
 
@@ -500,7 +428,6 @@ public:
 
 private:
   std::vector<int> isSetupNeeded;
-  bool isAutomating = false;
   VecBuffer<Vec> buffer;
   std::array<double, Vec::size()> frequency;
   std::array<double, Vec::size()> quality;
@@ -600,7 +527,7 @@ public:
     : numChannels(numChannels)
   {
     int num2, num4, num8;
-    getNumOfVecBuffersUsedByInterleavedBuffer<Scalar>(
+    avec::getNumOfVecBuffersUsedByInterleavedBuffer<Scalar>(
       numChannels, num2, num4, num8);
     filters8.reserve(num8);
     filters4.reserve(num4);
@@ -695,20 +622,20 @@ public:
   void resetChannnelStates(int firstChannelToReset, int numChannelsToReset)
   {
     for (int i = firstChannelToReset;
-         i <
-         std::min(filters2.size(), firstChannelToReset + numChannelsToReset);
+         i < std::min((int)filters2.size(),
+                      firstChannelToReset + numChannelsToReset);
          ++i) {
       filters2[i].reset();
     }
     for (int i = firstChannelToReset;
-         i <
-         std::min(filters4.size(), firstChannelToReset + numChannelsToReset);
+         i < std::min((int)filters4.size(),
+                      firstChannelToReset + numChannelsToReset);
          ++i) {
       filters4[i].reset();
     }
     for (int i = firstChannelToReset;
-         i <
-         std::min(filters8.size(), firstChannelToReset + numChannelsToReset);
+         i < std::min((int)filters8.size(),
+                      firstChannelToReset + numChannelsToReset);
          ++i) {
       filters8[i].reset();
     }
@@ -728,7 +655,7 @@ public:
 
     for (int i = 0; i < numChannelsToMove; ++i) {
       Scalar state0, state1;
-      InterleavedChannel<Scalar>::doAtChannel(
+      avec::InterleavedChannel<Scalar>::doAtChannel(
         i + srcChannel,
         filters2,
         filters4,
@@ -736,7 +663,7 @@ public:
         [&](auto& filter, int channel, int numChannels) {
           filter.getState(channel, state0, state1);
         });
-      InterleavedChannel<Scalar>::doAtChannel(
+      avec::InterleavedChannel<Scalar>::doAtChannel(
         i + dstChannel,
         filters2,
         filters4,
@@ -755,12 +682,14 @@ public:
    */
   void setFrequency(int channel, double value)
   {
-    onChannel(
-      [value](auto* filter, int channel) {
-        filter->setFrequency(channel, value);
-        return 0.0;
-      },
-      channel);
+    avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [value](auto& filter, int channel, int unused_numChannels) {
+        filter.setFrequency(channel, value);
+      });
   }
 
   /**
@@ -770,12 +699,14 @@ public:
    */
   void setGain(int channel, double value)
   {
-    onChannel(
-      [value](auto* filter, int channel) {
-        filter->setGain(channel, value);
-        return 0.0;
-      },
-      channel);
+    avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [value](auto& filter, int channel, int unused_numChannels) {
+        filter.setGain(channel, value);
+      });
   }
 
   /**
@@ -785,12 +716,14 @@ public:
    */
   void setQuality(int channel, double value)
   {
-    onChannel(
-      [value](auto* filter, int channel) {
-        filter->setQuality(channel, value);
-        return 0.0;
-      },
-      channel);
+    avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [value](auto& filter, int channel, int unused_numChannels) {
+        filter.setQuality(channel, value);
+      });
   }
 
   /**
@@ -800,12 +733,14 @@ public:
    */
   void setBiquadFilterType(int channel, BiquadFilterType value)
   {
-    onChannel(
-      [value](auto* filter, int channel) {
-        filter->setBiquadFilterType(channel, value);
-        return 0.0;
-      },
-      channel);
+    avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [value](auto& filter, int channel, int unused_numChannels) {
+        filter.setBiquadFilterType(channel, value);
+      });
   }
 
   /**
@@ -883,9 +818,14 @@ public:
    */
   double getFrequency(int channel) const
   {
-    onChannel(
-      [](auto* filter, int channel) { return filter->getFrequency(channel); },
-      channel);
+    return avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [](auto& filter, int channel, int unused_numChannels) {
+        return filter.getFrequency(channel);
+      });
   }
 
   /**
@@ -895,9 +835,14 @@ public:
    */
   double getGain(int channel) const
   {
-    onChannel(
-      [](auto* filter, int channel) { return filter->getGain(channel); },
-      channel);
+    return avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [](auto& filter, int channel, int unused_numChannels) {
+        return filter.getGain(channel);
+      });
   }
 
   /**
@@ -907,9 +852,14 @@ public:
    */
   double getQuality(int channel) const
   {
-    onChannel(
-      [](auto* filter, int channel) { return filter->getQuality(channel); },
-      channel);
+    return avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [](auto& filter, int channel, int unused_numChannels) {
+        return filter.getQuality(channel);
+      });
   }
 
   /**
@@ -919,9 +869,14 @@ public:
    */
   BiquadFilterType getBiquadFilterType(int channel) const
   {
-    onChannel([](auto* filter,
-                 int channel) { return filter->getBiquadFilterType(channel); },
-              channel);
+    return avec::InterleavedChannel<Scalar>::doAtChannel(
+      channel,
+      filters2,
+      filters4,
+      filters8,
+      [](auto& filter, int channel, int unused_numChannels) {
+        return filter.getBiquadFilterType(channel);
+      });
   }
 
   /**

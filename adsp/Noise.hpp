@@ -352,7 +352,7 @@ inline NoiseGenerator<Scalar>::NoiseGenerator(int numChannels, uint16_t seed)
   : numChannels(numChannels)
 {
   int num2, num4, num8;
-  getNumOfVecBuffersUsedByInterleavedBuffer<Scalar>(
+  avec::getNumOfVecBuffersUsedByInterleavedBuffer<Scalar>(
     numChannels, num2, num4, num8);
   generators8.reserve(num8);
   generators4.reserve(num4);
