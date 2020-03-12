@@ -208,13 +208,13 @@ Spline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
   Vec t[maxNumActiveKnots];
   Vec s[maxNumActiveKnots];
 
-  auto symm = Vec().load_a(this->isSymmetric) != 0.0;
+  auto symm = Vec().load_a(isSymmetric) != 0.0;
 
   for (int n = 0; n < numActiveKnots; ++n) {
-    x[n] = Vec().load_a(this->knots[n].x);
-    y[n] = Vec().load_a(this->knots[n].y);
-    t[n] = Vec().load_a(this->knots[n].t);
-    s[n] = Vec().load_a(this->knots[n].s);
+    x[n] = Vec().load_a(knots[n].x);
+    y[n] = Vec().load_a(knots[n].y);
+    t[n] = Vec().load_a(knots[n].t);
+    s[n] = Vec().load_a(knots[n].s);
   }
 
   for (int i = 0; i < numSamples; ++i) {
@@ -337,7 +337,7 @@ AutoSpline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
     return;
   }
 
-  Vec const alpha = Vec().load_a(automator->getSmoothingAlpha());
+  Vec const alpha = Vec().load_a(smoothingAlpha);
 
   Vec x[maxNumActiveKnots];
   Vec y[maxNumActiveKnots];
@@ -349,16 +349,14 @@ AutoSpline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
   Vec t_a[maxNumActiveKnots];
   Vec s_a[maxNumActiveKnots];
 
-  auto symm = Vec().load_a(this->isSymmetric) != 0.0;
+  auto symm = Vec().load_a(spline.isSymmetric) != 0.0;
 
   for (int n = 0; n < numActiveKnots; ++n) {
-    x[n] = Vec().load_a(this->knots[n].x);
-    y[n] = Vec().load_a(this->knots[n].y);
-    t[n] = Vec().load_a(this->knots[n].t);
-    s[n] = Vec().load_a(this->knots[n].s);
+    x[n] = Vec().load_a(spline.knots[n].x);
+    y[n] = Vec().load_a(spline.knots[n].y);
+    t[n] = Vec().load_a(spline.knots[n].t);
+    s[n] = Vec().load_a(spline.knots[n].s);
   }
-
-  auto* automationKnots = automator->getKnots();
 
   for (int n = 0; n < numActiveKnots; ++n) {
     x_a[n] = Vec().load_a(automationKnots[n].x);
@@ -474,10 +472,10 @@ AutoSpline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
   // update spline state
 
   for (int n = 0; n < numActiveKnots; ++n) {
-    x[n].store_a(this->knots[n].x);
-    y[n].store_a(this->knots[n].y);
-    t[n].store_a(this->knots[n].t);
-    s[n].store_a(this->knots[n].s);
+    x[n].store_a(spline.knots[n].x);
+    y[n].store_a(spline.knots[n].y);
+    t[n].store_a(spline.knots[n].t);
+    s[n].store_a(spline.knots[n].s);
   }
 }
 
