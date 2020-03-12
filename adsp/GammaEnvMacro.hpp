@@ -40,22 +40,22 @@
   Vec gamma##_enva[4];                                                         \
   Vec gamma##_envb[4];                                                         \
   Vec gamma##_envr[16];                                                        \
-  Vec gamma##_env5 = Vec().load_a(gamma->env5_);                               \
-  Vec gamma##_enva5 = Vec().load_a(gamma->enva5_);                             \
-  Vec gamma##_envb5 = Vec().load_a(gamma->envb5_);                             \
-  Vec gamma##_envr5 = Vec().load_a(gamma->envr5_);                             \
-  Vec gamma##_prevr = Vec().load_a(gamma->prevr_);                             \
-  auto const gamma##_rms = Vec().load_a(gamma->useRms) != 0.0;                 \
+  Vec gamma##_env5 = Vec().load_a(gamma.env5_);                                \
+  Vec gamma##_enva5 = Vec().load_a(gamma.enva5_);                              \
+  Vec gamma##_envb5 = Vec().load_a(gamma.envb5_);                              \
+  Vec gamma##_envr5 = Vec().load_a(gamma.envr5_);                              \
+  Vec gamma##_prevr = Vec().load_a(gamma.prevr_);                              \
+  auto const gamma##_rms = Vec().load_a(gamma.useRms) != 0.0;                  \
   Vec const gamma##_to_db_coef = select(gamma##_rms,                           \
                                         10.0 / 2.30258509299404568402,         \
                                         20.0 / 2.30258509299404568402);        \
   for (int i = 0; i < 4; ++i) {                                                \
-    gamma##_enva[i] = Vec().load_a(gamma->enva_ + i * Vec::size());            \
-    gamma##_envb[i] = Vec().load_a(gamma->envb_ + i * Vec::size());            \
+    gamma##_enva[i] = Vec().load_a(gamma.enva_ + i * Vec::size());             \
+    gamma##_envb[i] = Vec().load_a(gamma.envb_ + i * Vec::size());             \
   }                                                                            \
   for (int i = 0; i < 16; ++i) {                                               \
-    gamma##_env[i] = Vec().load_a(gamma->env_ + i * Vec::size());              \
-    gamma##_envr[i] = Vec().load_a(gamma->envr_ + i * Vec::size());            \
+    gamma##_env[i] = Vec().load_a(gamma.env_ + i * Vec::size());               \
+    gamma##_envr[i] = Vec().load_a(gamma.envr_ + i * Vec::size());             \
   }
 
 #define COMPUTE_GAMMAENV(gamma, Vec, in, out, outputDB)                        \
@@ -123,15 +123,15 @@
 
 #define STORE_GAMMAENV_STATE(gamma, Vec)                                       \
   for (int i = 0; i < 4; ++i) {                                                \
-    gamma##_enva[i].store_a(gamma->enva_ + i * Vec::size());                   \
-    gamma##_envb[i].store_a(gamma->envb_ + i * Vec::size());                   \
+    gamma##_enva[i].store_a(gamma.enva_ + i * Vec::size());                    \
+    gamma##_envb[i].store_a(gamma.envb_ + i * Vec::size());                    \
   }                                                                            \
   for (int i = 0; i < 16; ++i) {                                               \
-    gamma##_env[i].store_a(gamma->env_ + i * Vec::size());                     \
-    gamma##_envr[i].store_a(gamma->envr_ + i * Vec::size());                   \
+    gamma##_env[i].store_a(gamma.env_ + i * Vec::size());                      \
+    gamma##_envr[i].store_a(gamma.envr_ + i * Vec::size());                    \
   }                                                                            \
-  gamma##_env5.store_a(gamma->env5_);                                          \
-  gamma##_enva5.store_a(gamma->enva5_);                                        \
-  gamma##_envb5.store_a(gamma->envb5_);                                        \
-  gamma##_envr5.store_a(gamma->envr5_);                                        \
-  gamma##_prevr.store_a(gamma->prevr_);
+  gamma##_env5.store_a(gamma.env5_);                                           \
+  gamma##_enva5.store_a(gamma.enva5_);                                         \
+  gamma##_envb5.store_a(gamma.envb5_);                                         \
+  gamma##_envr5.store_a(gamma.envr5_);                                         \
+  gamma##_prevr.store_a(gamma.prevr_);
