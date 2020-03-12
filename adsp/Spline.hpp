@@ -172,7 +172,7 @@ public:
                     VecBuffer<Vec>& output,
                     int const numActiveKnots)
   {
-    (spline.*(calls[numActiveKnots]))(input, output);
+    (spline.*(calls[numActiveKnots]))(input, output, numActiveKnots);
   }
 };
 
