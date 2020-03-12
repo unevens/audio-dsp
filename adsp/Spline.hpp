@@ -69,7 +69,6 @@ struct Spline final
     processBlock_<maxNumKnots>(input, output, numActiveKnots);
   }
 
-private:
   template<int maxNumActiveKnots>
   void processBlock_(VecBuffer<Vec> const& input,
                      VecBuffer<Vec>& output,
@@ -132,7 +131,6 @@ struct AutoSpline final
     processBlock_<maxNumKnots>(input, output, numActiveKnots);
   }
 
-private:
   template<int maxNumActiveKnots>
   void processBlock_(VecBuffer<Vec> const& input,
                      VecBuffer<Vec>& output,
@@ -148,7 +146,8 @@ template<template<class, int> class SplineClass, class Vec, int maxNumKnots>
 class SplineDispatcher final
 {
   using Call = void (SplineClass<Vec, maxNumKnots>::*)(VecBuffer<Vec> const&,
-                                                       VecBuffer<Vec>&);
+                                                       VecBuffer<Vec>&,
+                                                       int const);
 
   std::array<Call, maxNumKnots + 1> calls;
 
@@ -158,7 +157,7 @@ class SplineDispatcher final
     static void initialize(Call* calls)
     {
       calls[numActiveKnots] =
-        &SplineClass<Vec, maxNumKnots>::processBlock<numActiveKnots>;
+        &SplineClass<Vec, maxNumKnots>::template processBlock_<numActiveKnots>;
       if constexpr (numActiveKnots > 0) {
         Initializer<numActiveKnots - 1>::initialize(calls);
       }
