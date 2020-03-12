@@ -18,38 +18,36 @@ limitations under the License.
 #include "adsp/Spline.hpp"
 
 #define LOAD_SPLINE_STATE(spline, numActiveKnots, Vec, maxNumKnots)            \
-  auto spline##_knots = spline->getKnots();                                    \
   Vec spline##_x[maxNumKnots];                                                 \
   Vec spline##_y[maxNumKnots];                                                 \
   Vec spline##_t[maxNumKnots];                                                 \
   Vec spline##_s[maxNumKnots];                                                 \
   for (int n = 0; n < numActiveKnots; ++n) {                                   \
-    spline##_x[n] = Vec().load_a(spline##_knots[n].x);                         \
-    spline##_y[n] = Vec().load_a(spline##_knots[n].y);                         \
-    spline##_t[n] = Vec().load_a(spline##_knots[n].t);                         \
-    spline##_s[n] = Vec().load_a(spline##_knots[n].s);                         \
+    spline##_x[n] = Vec().load_a(spline.knots[n].x);                           \
+    spline##_y[n] = Vec().load_a(spline.knots[n].y);                           \
+    spline##_t[n] = Vec().load_a(spline.knots[n].t);                           \
+    spline##_s[n] = Vec().load_a(spline.knots[n].s);                           \
   }
 
-#define LOAD_SPLINE_AUTOMATOR(automator, numActiveKnots, Vec, maxNumKnots)     \
-  Vec const automator##_alpha = Vec().load_a(automator->getSmoothingAlpha());  \
-  auto automator##_knots = automator->getKnots();                              \
+#define LOAD_SPLINE_AUTOMATION(automator, numActiveKnots, Vec, maxNumKnots)   \
+  Vec const automator##_alpha = Vec().load_a(automator.smoothingAlpha);       \
   Vec automator##_x_a[maxNumKnots];                                            \
   Vec automator##_y_a[maxNumKnots];                                            \
   Vec automator##_t_a[maxNumKnots];                                            \
   Vec automator##_s_a[maxNumKnots];                                            \
   for (int n = 0; n < numActiveKnots; ++n) {                                   \
-    automator##_x_a[n] = Vec().load_a(automator##_knots[n].x);                 \
-    automator##_y_a[n] = Vec().load_a(automator##_knots[n].y);                 \
-    automator##_t_a[n] = Vec().load_a(automator##_knots[n].t);                 \
-    automator##_s_a[n] = Vec().load_a(automator##_knots[n].s);                 \
+    automator##_x_a[n] = Vec().load_a(automator.automationKnots[n].x);        \
+    automator##_y_a[n] = Vec().load_a(automator.automationKnots[n].y);        \
+    automator##_t_a[n] = Vec().load_a(automator.automationKnots[n].t);        \
+    automator##_s_a[n] = Vec().load_a(automator.automationKnots[n].s);        \
   }
 
 #define STORE_SPLINE_STATE(spline, numActiveKnots)                             \
   for (int n = 0; n < numActiveKnots; ++n) {                                   \
-    spline##_x[n].store_a(spline##_knots[n].x);                                \
-    spline##_y[n].store_a(spline##_knots[n].y);                                \
-    spline##_t[n].store_a(spline##_knots[n].t);                                \
-    spline##_s[n].store_a(spline##_knots[n].s);                                \
+    spline##_x[n].store_a(spline.knots[n].x);                                  \
+    spline##_y[n].store_a(spline.knots[n].y);                                  \
+    spline##_t[n].store_a(spline.knots[n].t);                                  \
+    spline##_s[n].store_a(spline.knots[n].s);                                  \
   }
 
 #define SPILINE_AUTOMATION(spline, automator, numActiveKnots, Vec)             \
@@ -65,7 +63,7 @@ limitations under the License.
   }
 
 #define LOAD_SPLINE_SYMMETRY(spline, Vec)                                      \
-  auto const spline##_symm = Vec().load_a(spline->getIsSymmetric()) != 0.0;
+  auto const spline##_symm = Vec().load_a(spline.isSymmetric) != 0.0;
 
 #define COMPUTE_SPLINE(spline, numActiveKnots, Vec, in, out)                   \
   {                                                                            \
