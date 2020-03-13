@@ -27,6 +27,9 @@ struct Spline final
 {
   static constexpr int maxNumKnots = maxNumKnots_;
 
+  template<template<class, int> class SplineClass, class VecClass, int knots>
+  friend class SplineDispatcher;
+
   using Scalar = typename ScalarTypes<Vec>::Scalar;
 
   struct Knot final
@@ -69,6 +72,7 @@ struct Spline final
     processBlock_<maxNumKnots>(input, output, numActiveKnots);
   }
 
+private:
   template<int maxNumActiveKnots>
   void processBlock_(VecBuffer<Vec> const& input,
                      VecBuffer<Vec>& output,
@@ -86,6 +90,9 @@ struct AutoSpline final
 
   using Scalar = typename ScalarTypes<Vec>::Scalar;
   using Knot = typename Spline<Vec, maxNumKnots>::Knot;
+
+  template<template<class, int> class SplineClass, class VecClass, int knots>
+  friend class SplineDispatcher;
 
   Scalar smoothingAlpha[Vec::size()];
   Knot automationKnots[maxNumKnots];
@@ -131,6 +138,7 @@ struct AutoSpline final
     processBlock_<maxNumKnots>(input, output, numActiveKnots);
   }
 
+private:
   template<int maxNumActiveKnots>
   void processBlock_(VecBuffer<Vec> const& input,
                      VecBuffer<Vec>& output,
