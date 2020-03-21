@@ -296,24 +296,26 @@ struct AutoSpline final
   }
 
   template<int numActiveKnots = maxNumKnots>
-  Vec process(
+  static Vec process(
     Vec const input,
     typename Spline<Vec, maxNumKnots>::template VecSettings<numActiveKnots>&
       spline,
     typename Automator::template VecData<numActiveKnots> const& automation)
   {
-    spline.process<numActiveKnots, typename Automator::VecData<numActiveKnots>>(
-      input, spline, automation, numActiveKnots, automator);
+    Spline<Vec, maxNumKnots>::
+      process<numActiveKnots, typename Automator::VecData<numActiveKnots>>(
+        input, spline, automation, numActiveKnots, automator);
   }
 
-  Vec process(
+  static Vec process(
     Vec const input,
     typename Spline<Vec, maxNumKnots>::template VecSettings<maxNumKnots>&
       spline,
     typename Automator::template VecData<maxNumKnots> const& automation,
     int const numActiveKnots)
   {
-    spline.process<maxNumKnots, typename Automator::VecData<maxNumKnots>>(
+    Spline<Vec, maxNumKnots>::process<maxNumKnots,
+                                      typename Automator::VecData<maxNumKnots>>(
       input, spline, automation, numActiveKnots, automator);
   }
 };
