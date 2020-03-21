@@ -8,9 +8,7 @@ Each template class abstracts over the many SIMD instructions sets, and will cho
 
 ## Splines
 
-The file `Spline.hpp` implements cubic Hermite splines with smoothly automatable knots.
-
-The file `SplineMacro.hpp` contains some macro that are useful to use the a spline in a complex processing loop, see for example https://github.com/unevens/Curvessor/blob/master/Source/Processing.cpp.
+The file `Spline.hpp` implements cubic Hermite splines with (optionally) smoothly automatable knots.
 
 ## State Variable Filters
 
