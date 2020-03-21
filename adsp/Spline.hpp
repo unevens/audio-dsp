@@ -185,26 +185,8 @@ struct Spline final
     template<template<int>
              class AutomatorVecData = FakeAutomator::template VecAutomator>
     Vec process(Vec const input,
-                AutomatorVecData<maxNumActiveKnots> const& automation)
-    {
-      return process_<numActiveKnots, AutomatorVecData>(
-        input, automation, maxNumActiveKnots);
-    }
-
-    template<template<int>
-             class AutomatorVecData = FakeAutomator::template VecAutomator>
-    Vec process(Vec const input,
-                AutomatorVecData<maxNumKnots> const& automation,
-                int const numActiveKnots)
-    {
-      return process_<AutomatorVecData>(input, automation, numActiveKnots);
-    }
-
-    template<template<int>
-             class AutomatorVecData = FakeAutomator::template VecAutomator>
-    Vec process_(Vec const input,
-                 AutomatorVecData<maxNumActiveKnots> const& automation,
-                 int const numActiveKnots);
+                AutomatorVecData<maxNumActiveKnots> const& automation,
+                int const numActiveKnots = maxNumActiveKnots);
   };
 
   Settings settings;
@@ -398,7 +380,7 @@ Spline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
   auto automation = automator.template getVecAutomator<maxNumActiveKnots>();
 
   for (int i = 0; i < numSamples; ++i) {
-    output[i] = spline.template process_<Automator::template VecAutomator>(
+    output[i] = spline.template process<Automator::template VecAutomator>(
       input[i], automation, numActiveKnots);
   }
 
@@ -411,7 +393,7 @@ template<class Vec, int maxNumKnots_>
 template<int maxNumActiveKnots>
 template<template<int> class AutomatorVecData>
 inline Vec
-Spline<Vec, maxNumKnots_>::VecSpline<maxNumActiveKnots>::process_(
+Spline<Vec, maxNumKnots_>::VecSpline<maxNumActiveKnots>::process(
   Vec const input,
   AutomatorVecData<maxNumActiveKnots> const& automation,
   int const numActiveKnots)

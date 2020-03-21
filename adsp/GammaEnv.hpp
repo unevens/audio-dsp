@@ -328,8 +328,8 @@ private:
   {
     auto v = VecData(*this);
 
-    for (int s = 0; s < numSamples; ++s) {
-      output[i] = v.process<outputInDB>(inputs[s]);
+    for (int i = 0; i < numSamples; ++i) {
+      output[i] = v.process<outputInDB>(input[i]);
     }
 
     v.update(*this);
@@ -342,8 +342,8 @@ private:
   {
     auto v = VecDataSymm(*this);
 
-    for (int s = 0; s < numSamples; ++s) {
-      output[i] = v.process<outputInDB>(inputs[s]);
+    for (int i = 0; i < numSamples; ++i) {
+      output[i] = v.process<outputInDB>(input[i]);
     }
 
     v.update(*this);
