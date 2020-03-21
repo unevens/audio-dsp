@@ -18,8 +18,6 @@ The file `StateVariable.hpp` implements linear and non-linear state variable fil
 
 The file `GammaEnv.hpp` implements [gammaenv](https://github.com/avaneev/gammaenv), an envelope follower by Aleksey Vaneev.
 
-The file `GammaEnvMacro.hpp` contains some macro useful to use the envelope follower in a complex processing loop, see for example https://github.com/unevens/Curvessor/blob/master/Source/Processing.cpp.
-
 ## Noise Generator
 
 The file `Noise.hpp` implements a (white) noise generator.

@@ -79,90 +79,81 @@ template<class Vec>
 struct GammaEnv final
 {
   using Scalar = typename ScalarTypes<Vec>::Scalar;
+  using Mask = typename MaskTypes<Vec>::Mask;
 
-  Scalar env_[16 * Vec::size()];
-  Scalar enva_[4 * Vec::size()];
-  Scalar envb_[4 * Vec::size()];
-  Scalar envr_[16 * Vec::size()];
-  Scalar env5_[Vec::size()];
-  Scalar enva5_[Vec::size()];
-  Scalar envb5_[Vec::size()];
-  Scalar envr5_[Vec::size()];
-  Scalar prevr_[Vec::size()];
+  Scalar env[16 * Vec::size()];
+  Scalar enva[4 * Vec::size()];
+  Scalar envb[4 * Vec::size()];
+  Scalar envr[16 * Vec::size()];
+  Scalar env5[Vec::size()];
+  Scalar enva5[Vec::size()];
+  Scalar envb5[Vec::size()];
+  Scalar envr5[Vec::size()];
+  Scalar prevr[Vec::size()];
 
   Scalar useRms[Vec::size()];
 
-  GammaEnv() { AVEC_ASSERT_ALIGNMENT(this, Vec); }
-
-  void reset(double initv = 0.0)
-  {
-    std::fill_n(&env_[0], 16 * Vec::size(), initv);
-    std::fill_n(&envr_[0], 16 * Vec::size(), initv);
-    std::fill_n(&env5_[0], Vec::size(), initv);
-    std::fill_n(&envr5_[0], Vec::size(), initv);
-    std::fill_n(&prevr_[0], Vec::size(), initv);
-  }
-
-  void processBlock(VecBuffer<Vec> const& input,
-                    VecBuffer<Vec>& output,
-                    int numSamples)
-  {
-    processBlock_<0>(input, output, numSamples);
-  }
-
-  void processBlockSymm(VecBuffer<Vec> const& input,
-                        VecBuffer<Vec>& output,
-                        int numSamples)
-  {
-    processBlockSymm_<0>(input, output, numSamples);
-  }
-
-  void processBlockDB(VecBuffer<Vec> const& input,
-                      VecBuffer<Vec>& output,
-                      int numSamples)
-  {
-    processBlock_<1>(input, output, numSamples);
-  }
-
-  void processBlockSymmDB(VecBuffer<Vec> const& input,
-                          VecBuffer<Vec>& output,
-                          int numSamples)
-  {
-    processBlockSymm_<1>(input, output, numSamples);
-  }
-
-private:
-  template<int outputInDB = 0>
-  void processBlock_(VecBuffer<Vec> const& input,
-                     VecBuffer<Vec>& output,
-                     int numSamples)
+  struct VecData final
   {
     Vec env[16];
     Vec enva[4];
     Vec envb[4];
     Vec envr[16];
-    Vec env5 = Vec().load_a(env5_);
-    Vec enva5 = Vec().load_a(enva5_);
-    Vec envb5 = Vec().load_a(envb5_);
-    Vec envr5 = Vec().load_a(envr5_);
-    Vec prevr = Vec().load_a(prevr_);
-    auto const rms = Vec().load_a(useRms) != 0.0;
-    Vec const to_db_coef =
-      select(rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
+    Vec env5;
+    Vec enva5;
+    Vec envb5;
+    Vec envr5;
+    Vec prevr;
+    Mask rms;
+    Vec to_db_coef;
 
-    for (int i = 0; i < 4; ++i) {
-      enva[i] = Vec().load_a(enva_ + i * Vec::size());
-      envb[i] = Vec().load_a(envb_ + i * Vec::size());
-    }
-    for (int i = 0; i < 16; ++i) {
-      env[i] = Vec().load_a(env_ + i * Vec::size());
-      envr[i] = Vec().load_a(envr_ + i * Vec::size());
+    VecData(GammaEnv const& gammaEnv)
+      : env5(Vec().load_a(gammaEnv.env5))
+      , enva5(Vec().load_a(gammaEnv.enva5))
+      , envb5(Vec().load_a(gammaEnv.envb5))
+      , envr5(Vec().load_a(gammaEnv.envr5))
+      , prevr(Vec().load_a(gammaEnv.prevr))
+      , rms(Vec().load_a(gammaEnv.useRms) != 0.0)
+    {
+      to_db_coef = select(
+        rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
+
+      for (int i = 0; i < 4; ++i) {
+        enva[i] = Vec().load_a(gammaEnv.enva + i * Vec::size());
+        envb[i] = Vec().load_a(gammaEnv.envb + i * Vec::size());
+      }
+      for (int i = 0; i < 16; ++i) {
+        env[i] = Vec().load_a(gammaEnv.env + i * Vec::size());
+        envr[i] = Vec().load_a(gammaEnv.envr + i * Vec::size());
+      }
     }
 
-    for (int s = 0; s < numSamples; ++s) {
-      Vec v = input[s];
-      v = select(rms, v * v, abs(v));
-      env[0] += (v - env[0]) * enva[0];
+    void update(GammaEnv& gammaEnv) const
+    {
+      for (int i = 0; i < 4; ++i) {
+        enva[i].store_a(gammaEnv.enva + i * Vec::size());
+        envb[i].store_a(gammaEnv.envb + i * Vec::size());
+      }
+      for (int i = 0; i < 16; ++i) {
+        env[i].store_a(gammaEnv.env + i * Vec::size());
+        envr[i].store_a(gammaEnv.envr + i * Vec::size());
+      }
+      env5.store_a(gammaEnv.env5);
+      enva5.store_a(gammaEnv.enva5);
+      envb5.store_a(gammaEnv.envb5);
+      envr5.store_a(gammaEnv.envr5);
+      prevr.store_a(gammaEnv.prevr);
+    }
+
+    Vec process(Vec in) { return process_<0>(in); }
+
+    Vec processDB(Vec in) { return process_<1>(in); }
+
+    template<int outputInDB = 0>
+    Vec process_(Vec in)
+    {
+      in = select(rms, in * in, abs(in));
+      env[0] += (in - env[0]) * enva[0];
       env[1] += (env5 - env[1]) * enva[1];
       env[2] += (env[4 * 3 + 1] - env[2]) * enva[2];
       env[3] += (env[4 * 3 + 0] - env[3]) * enva[3];
@@ -208,54 +199,60 @@ private:
       prevr = select(increasing, resa, prevr);
 
       if constexpr (outputInDB) {
-        output[i] = to_db_coef * log(prevr + std::numeric_limits<float>::min());
+        return to_db_coef * log(prevr + std::numeric_limits<float>::min());
       }
       else {
-        output[i] = prevr;
+        return prevr;
       }
     }
+  };
 
-    for (int i = 0; i < 4; ++i) {
-      enva[i].store_a(enva_ + i * Vec::size());
-      envb[i].store_a(envb_ + i * Vec::size());
-    }
-    for (int i = 0; i < 16; ++i) {
-      env[i].store_a(env_ + i * Vec::size());
-      envr[i].store_a(envr_ + i * Vec::size());
-    }
-    env5.store_a(env5_);
-    enva5.store_a(enva5_);
-    envb5.store_a(envb5_);
-    envr5.store_a(envr5_);
-    prevr.store_a(prevr_);
-  }
-
-  template<int outputInDB = 0>
-  void processBlockSymm_(VecBuffer<Vec> const& input,
-                         VecBuffer<Vec>& output,
-                         int numSamples)
+  struct VecDataSymm final
   {
     Vec env[16];
     Vec enva[4];
-    Vec env5 = Vec().load_a(env5_);
-    Vec enva5 = Vec().load_a(enva5_);
+    Vec env5;
+    Vec enva5;
+    Mask rms;
+    Vec to_db_coef;
 
-    for (int i = 0; i < 4; ++i) {
-      enva[i] = Vec().load_a(enva_ + i * Vec::size());
+    VecDataSymm(GammaEnv const& gammaEnv)
+      : env5(Vec().load_a(gammaEnv.env5))
+      , enva5(Vec().load_a(gammaEnv.enva5))
+      , rms(Vec().load_a(gammaEnv.useRms) != 0.0)
+    {
+      to_db_coef = select(
+        rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
+
+      for (int i = 0; i < 4; ++i) {
+        enva[i] = Vec().load_a(gammaEnv.enva + i * Vec::size());
+      }
+      for (int i = 0; i < 16; ++i) {
+        env[i] = Vec().load_a(gammaEnv.env + i * Vec::size());
+      }
     }
-    for (int i = 0; i < 16; ++i) {
-      env[i] = Vec().load_a(env_ + i * Vec::size());
+
+    void update(GammaEnv& gammaEnv) const
+    {
+      for (int i = 0; i < 4; ++i) {
+        enva[i].store_a(gammaEnv.enva + i * Vec::size());
+      }
+      for (int i = 0; i < 16; ++i) {
+        env[i].store_a(gammaEnv.env + i * Vec::size());
+      }
+      env5.store_a(gammaEnv.env5);
+      enva5.store_a(gammaEnv.enva5);
     }
 
-    auto const rms = Vec().load_a(useRms) != 0.0;
-    Vec const to_db_coef =
-      select(rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
+    Vec process(Vec in) { return process_<0>(in); }
 
-    for (int s = 0; s < numSamples; ++s) {
-      Vec v = input[s];
-      v = select(rms, v * v, abs(v));
+    Vec processDB(Vec in) { return process_<1>(in); }
 
-      env[0] += (v - env[0]) * enva[0];
+    template<int outputInDB = 0>
+    Vec process_(Vec in)
+    {
+      in = select(rms, in * in, abs(in));
+      env[0] += (in - env[0]) * enva[0];
       env[1] += (env5 - env[1]) * enva[1];
       env[2] += (env[4 * 3 + 1] - env[2]) * enva[2];
       env[3] += (env[4 * 3 + 0] - env[3]) * enva[3];
@@ -272,21 +269,84 @@ private:
       Vec out = (env[i - 4] + env[i - 3] + env[i - 2] - env[i - 1] - env5);
 
       if constexpr (outputInDB) {
-        output[i] = to_db_coef * log(out + std::numeric_limits<float>::min());
+        return to_db_coef * log(out + std::numeric_limits<float>::min());
       }
       else {
-        output[i] = out;
+        return out;
       }
     }
+  };
 
-    for (int i = 0; i < 4; ++i) {
-      enva[i].store_a(enva_ + i * Vec::size());
+  GammaEnv() { AVEC_ASSERT_ALIGNMENT(this, Vec); }
+
+  VecData getVecData() const { return VecData(*this); }
+
+  VecDataSymm getVecDataSymm() const { return VecDataSymm(*this); }
+
+  void reset(double initv = 0.0)
+  {
+    std::fill_n(&env[0], 16 * Vec::size(), initv);
+    std::fill_n(&envr[0], 16 * Vec::size(), initv);
+    std::fill_n(&env5[0], Vec::size(), initv);
+    std::fill_n(&envr5[0], Vec::size(), initv);
+    std::fill_n(&prevr[0], Vec::size(), initv);
+  }
+
+  void processBlock(VecBuffer<Vec> const& input,
+                    VecBuffer<Vec>& output,
+                    int numSamples)
+  {
+    processBlock_<0>(input, output, numSamples);
+  }
+
+  void processBlockSymm(VecBuffer<Vec> const& input,
+                        VecBuffer<Vec>& output,
+                        int numSamples)
+  {
+    processBlockSymm_<0>(input, output, numSamples);
+  }
+
+  void processBlockDB(VecBuffer<Vec> const& input,
+                      VecBuffer<Vec>& output,
+                      int numSamples)
+  {
+    processBlock_<1>(input, output, numSamples);
+  }
+
+  void processBlockSymmDB(VecBuffer<Vec> const& input,
+                          VecBuffer<Vec>& output,
+                          int numSamples)
+  {
+    processBlockSymm_<1>(input, output, numSamples);
+  }
+
+private:
+  template<int outputInDB = 0>
+  void processBlock_(VecBuffer<Vec> const& input,
+                     VecBuffer<Vec>& output,
+                     int numSamples)
+  {
+    auto v = VecData(*this);
+
+    for (int s = 0; s < numSamples; ++s) {
+      output[i] = v.process<outputInDB>(inputs[s]);
     }
-    for (int i = 0; i < 16; ++i) {
-      env[i].store_a(env_ + i * Vec::size());
+
+    v.update(*this);
+  }
+
+  template<int outputInDB = 0>
+  void processBlockSymm_(VecBuffer<Vec> const& input,
+                         VecBuffer<Vec>& output,
+                         int numSamples)
+  {
+    auto v = VecDataSymm(*this);
+
+    for (int s = 0; s < numSamples; ++s) {
+      output[i] = v.process<outputInDB>(inputs[s]);
     }
-    env5.store_a(env5_);
-    enva5.store_a(enva5_);
+
+    v.update(*this);
   }
 };
 
@@ -452,11 +512,11 @@ public:
   {
     settings[channel].init();
     for (int s = 0; s < 4; ++s) {
-      processor.enva_[s * Vec::size() + channel] = settings[channel].enva[s];
-      processor.envb_[s * Vec::size() + channel] = settings[channel].envb[s];
+      processor.enva[s * Vec::size() + channel] = settings[channel].enva[s];
+      processor.envb[s * Vec::size() + channel] = settings[channel].envb[s];
     }
-    processor.enva5_[channel] = settings[channel].enva5;
-    processor.envb5_[channel] = settings[channel].envb5;
+    processor.enva5[channel] = settings[channel].enva5;
+    processor.envb5[channel] = settings[channel].envb5;
   }
 
   void computeCoefficients()
