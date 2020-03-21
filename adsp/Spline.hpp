@@ -272,9 +272,6 @@ struct AutoSpline final
   using Scalar = typename ScalarTypes<Vec>::Scalar;
   using Automator = typename Spline<Vec, maxNumKnots>::SmoothingAutomator;
 
-  template<class VecClass, int knots>
-  friend class AutoSplineDispatcher;
-
   Spline<Vec, maxNumKnots> spline;
   Automator automator;
 
@@ -283,40 +280,14 @@ struct AutoSpline final
   template<int numActiveKnots = maxNumKnots>
   void processBlock(VecBuffer<Vec> const& input, VecBuffer<Vec>& output)
   {
-    spline.processBlock<numActiveKnots, Automator>(
-      input, output, numActiveKnots, automator);
+    spline.processBlock<numActiveKnots, Automator>(input, output, automator);
   }
 
   void processBlock(VecBuffer<Vec> const& input,
                     VecBuffer<Vec>& output,
                     int const numActiveKnots)
   {
-    spline.processBlock<maxNumKnots, Automator>(
-      input, output, numActiveKnots, automator);
-  }
-
-  template<int numActiveKnots = maxNumKnots>
-  static Vec process(
-    Vec const input,
-    typename Spline<Vec, maxNumKnots>::template VecSettings<numActiveKnots>&
-      spline,
-    typename Automator::template VecData<numActiveKnots> const& automation)
-  {
-    Spline<Vec, maxNumKnots>::
-      process<numActiveKnots, typename Automator::VecData<numActiveKnots>>(
-        input, spline, automation, numActiveKnots, automator);
-  }
-
-  static Vec process(
-    Vec const input,
-    typename Spline<Vec, maxNumKnots>::template VecSettings<maxNumKnots>&
-      spline,
-    typename Automator::template VecData<maxNumKnots> const& automation,
-    int const numActiveKnots)
-  {
-    Spline<Vec, maxNumKnots>::process<maxNumKnots,
-                                      typename Automator::VecData<maxNumKnots>>(
-      input, spline, automation, numActiveKnots, automator);
+    spline.processBlock<Automator>(input, output, numActiveKnots, automator);
   }
 };
 
@@ -372,34 +343,19 @@ public:
 template<class Vec, int maxNumKnots>
 class AutoSplineDispatcher final
 {
-  using Call = void (AutoSpline<Vec, maxNumKnots>::*)(VecBuffer<Vec> const&,
-                                                      VecBuffer<Vec>&,
-                                                      int const);
-
-  std::array<Call, maxNumKnots + 1> calls;
-
-  template<int numActiveKnots>
-  struct Initializer
-  {
-    static void initialize(Call* calls)
-    {
-      calls[numActiveKnots] =
-        &AutoSpline<Vec, maxNumKnots>::template processBlock<numActiveKnots>;
-      if constexpr (numActiveKnots > 0) {
-        Initializer<numActiveKnots - 1>::initialize(calls);
-      }
-    }
-  };
+  SplineDispatcher<Vec,
+                   maxNumKnots,
+                   typename Spline<Vec, maxNumKnots>::SmoothingAutomator>
+    dispatcher;
 
 public:
-  AutoSplineDispatcher() { Initializer<maxNumKnots>::initialize(&calls[0]); }
-
   void processBlock(AutoSpline<Vec, maxNumKnots>& spline,
                     VecBuffer<Vec> const& input,
                     VecBuffer<Vec>& output,
                     int const numActiveKnots)
   {
-    (spline.*(calls[numActiveKnots]))(input, output, numActiveKnots);
+    dispatcher.processBlock(
+      spline.spline, input, output, numActiveKnots, spline.automator);
   }
 };
 
