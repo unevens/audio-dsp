@@ -105,6 +105,7 @@ struct Spline final
     template<int maxNumActiveKnots>
     struct VecAutomator
     {
+      using Automator = SmoothingAutomator;
       VecKnots<maxNumActiveKnots> knots;
       Vec alpha;
 
@@ -147,6 +148,7 @@ struct Spline final
     template<int maxNumActiveKnots>
     struct VecAutomator
     {
+      using Automator = FakeAutomator;
       void automate(VecKnots<maxNumActiveKnots>& values,
                     int const numActiveKnots) const
       {}
@@ -415,7 +417,11 @@ Spline<Vec, maxNumKnots_>::VecSpline<maxNumActiveKnots>::process_(
 {
   Vec const in = select(isSymmetric, abs(input), input);
 
-  automation.automate(knots, numActiveKnots);
+  if constexpr (!std::is_same_v<
+                  typename AutomatorVecData<maxNumActiveKnots>::Automator,
+                  FakeAutomator>) {
+    automation.automate(knots, numActiveKnots);
+  }
 
   // left knot paramters
 
