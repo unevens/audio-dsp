@@ -97,30 +97,18 @@ struct Spline final
     }
   };
 
-  template<int maxNumActiveKnots>
-  struct VecSettings
-  {
-    Mask isSymmetric;
-    VecKnots<maxNumActiveKnots> knots;
-
-    VecSettings(Settings const& settings)
-      : isSymmetric(Vec().load_a(settings.isSymmetric) != 0.0)
-      , knots(settings.knots)
-    {}
-  };
-
   struct SmoothingAutomator
   {
     Scalar smoothingAlpha[Vec::size()];
     Knots knots;
 
     template<int maxNumActiveKnots>
-    struct VecData
+    struct VecAutomator
     {
       VecKnots<maxNumActiveKnots> knots;
       Vec alpha;
 
-      VecData(SmoothingAutomator const& automator)
+      VecAutomator(SmoothingAutomator const& automator)
         : knots(automator.knots)
         , alpha(Vec().load_a(automator.smoothingAlpha))
       {}
@@ -148,16 +136,16 @@ struct Spline final
     }
 
     template<int maxNumActiveKnots>
-    VecData<maxNumActiveKnots> getVecData() const
+    VecAutomator<maxNumActiveKnots> getVecAutomator() const
     {
-      return VecData<maxNumActiveKnots>(*this);
+      return VecAutomator<maxNumActiveKnots>(*this);
     }
   };
 
   struct FakeAutomator
   {
     template<int maxNumActiveKnots>
-    struct VecData
+    struct VecAutomator
     {
       void automate(VecKnots<maxNumActiveKnots>& values,
                     int const numActiveKnots) const
@@ -167,12 +155,53 @@ struct Spline final
     void reset(Spline& spline) const {}
 
     template<int maxNumActiveKnots>
-    VecData<maxNumActiveKnots> getVecData() const
+    VecAutomator<maxNumActiveKnots> getVecAutomator() const
     {
       return {};
     }
 
     FakeAutomator() = default;
+  };
+
+  template<int maxNumActiveKnots>
+  struct VecSpline
+  {
+    Mask isSymmetric;
+    VecKnots<maxNumActiveKnots> knots;
+
+    VecSpline(Settings const& settings)
+      : isSymmetric(Vec().load_a(settings.isSymmetric) != 0.0)
+      , knots(settings.knots)
+    {}
+
+    void update(Spline& spline, int const numActiveKnots)
+    {
+      knots.update(spline.settings.knots, numActiveKnots);
+    }
+
+    template<template<int>
+             class AutomatorVecData = FakeAutomator::template VecAutomator>
+    Vec process(Vec const input,
+                AutomatorVecData<maxNumActiveKnots> const& automation)
+    {
+      return process_<numActiveKnots, AutomatorVecData>(
+        input, automation, maxNumActiveKnots);
+    }
+
+    template<template<int>
+             class AutomatorVecData = FakeAutomator::template VecAutomator>
+    Vec process(Vec const input,
+                AutomatorVecData<maxNumKnots> const& automation,
+                int const numActiveKnots)
+    {
+      return process_<AutomatorVecData>(input, automation, numActiveKnots);
+    }
+
+    template<template<int>
+             class AutomatorVecData = FakeAutomator::template VecAutomator>
+    Vec process_(Vec const input,
+                 AutomatorVecData<maxNumActiveKnots> const& automation,
+                 int const numActiveKnots);
   };
 
   Settings settings;
@@ -212,39 +241,17 @@ struct Spline final
       input, output, numActiveKnots, automator);
   }
 
-  template<int numActiveKnots = maxNumKnots,
-           template<int>
-           class AutomatorVecData = FakeAutomator::template VecData>
-  static Vec process(Vec const input,
-                     VecSettings<numActiveKnots>& spline,
-                     AutomatorVecData<numActiveKnots> const& automation)
-  {
-    return process_<numActiveKnots, AutomatorVecData>(
-      input, spline, automation, numActiveKnots);
-  }
-
-  template<template<int>
-           class AutomatorVecData = FakeAutomator::template VecData>
-  static Vec process(Vec const input,
-                     VecSettings<maxNumKnots>& spline,
-                     AutomatorVecData<maxNumKnots> const& automation,
-                     int const numActiveKnots)
-  {
-    return process_<maxNumKnots, AutomatorVecData>(
-      input, spline, automation, numActiveKnots);
-  }
-
   template<int maxNumActiveKnots>
-  void update(VecSettings<maxNumActiveKnots> const& spline,
+  void update(VecSpline<maxNumActiveKnots> const& spline,
               int const numActiveKnots)
   {
     spline.knots.update(settings.knots, numActiveKnots);
   }
 
   template<int maxNumActiveKnots>
-  VecSettings<maxNumActiveKnots> getVecData() const
+  VecSpline<maxNumActiveKnots> getVecSpline() const
   {
-    return VecSettings<maxNumActiveKnots>(settings);
+    return VecSpline<maxNumActiveKnots>(settings);
   }
 
 private:
@@ -253,14 +260,6 @@ private:
                      VecBuffer<Vec>& output,
                      int const numActiveKnots,
                      Automator const& automator = {});
-
-  template<int maxNumActiveKnots,
-           template<int>
-           class AutomatorVecData = FakeAutomator::template VecData>
-  static Vec process_(Vec const input,
-                      VecSettings<maxNumActiveKnots>& spline,
-                      AutomatorVecData<maxNumActiveKnots> const& automation,
-                      int const numActiveKnots);
 };
 
 /**
@@ -283,14 +282,16 @@ struct AutoSpline final
   template<int numActiveKnots = maxNumKnots>
   void processBlock(VecBuffer<Vec> const& input, VecBuffer<Vec>& output)
   {
-    spline.template processBlock<numActiveKnots, Automator>(input, output, automator);
+    spline.template processBlock<numActiveKnots, Automator>(
+      input, output, automator);
   }
 
   void processBlock(VecBuffer<Vec> const& input,
                     VecBuffer<Vec>& output,
                     int const numActiveKnots)
   {
-    spline.template processBlock<Automator>(input, output, numActiveKnots, automator);
+    spline.template processBlock<Automator>(
+      input, output, numActiveKnots, automator);
   }
 };
 
@@ -390,34 +391,31 @@ Spline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
     return;
   }
 
-  auto spline = getVecData<maxNumActiveKnots>();
-  auto automation = automator.template getVecData<maxNumActiveKnots>();
+  auto spline = getVecSpline<maxNumActiveKnots>();
+  auto automation = automator.template getVecAutomator<maxNumActiveKnots>();
 
   for (int i = 0; i < numSamples; ++i) {
-    output[i] = process_<maxNumActiveKnots, Automator::template VecData>(
-      input[i], spline, automation, numActiveKnots);
+    output[i] = spline.template process_<Automator::template VecAutomator>(
+      input[i], automation, numActiveKnots);
   }
 
   if constexpr (!std::is_same_v<Automator, FakeAutomator>) {
-    update(spline, numActiveKnots);
+    spline.update(*this, numActiveKnots);
   }
 }
 
 template<class Vec, int maxNumKnots_>
-template<int maxNumActiveKnots, template<int> class AutomatorVecData>
+template<int maxNumActiveKnots>
+template<template<int> class AutomatorVecData>
 inline Vec
-Spline<Vec, maxNumKnots_>::process_(
+Spline<Vec, maxNumKnots_>::VecSpline<maxNumActiveKnots>::process_(
   Vec const input,
-  VecSettings<maxNumActiveKnots>& spline,
   AutomatorVecData<maxNumActiveKnots> const& automation,
   int const numActiveKnots)
 {
-  Vec const in = select(spline.isSymmetric, abs(input), input);
+  Vec const in = select(isSymmetric, abs(input), input);
 
-  //  if constexpr (!std::is_same_v<typename AutomatorVecData<1>,
-  //                              FakeAutomator::template VecData<1>>) {
-  automation.automate(spline.knots, numActiveKnots);
-  //}
+  automation.automate(knots, numActiveKnots);
 
   // left knot paramters
 
@@ -435,40 +433,40 @@ Spline<Vec, maxNumKnots_>::process_(
 
   // parameters for segment below the range of the spline
 
-  Vec x_low = spline.knots[0].x;
-  Vec y_low = spline.knots[0].y;
-  Vec t_low = spline.knots[0].t;
+  Vec x_low = knots[0].x;
+  Vec y_low = knots[0].y;
+  Vec t_low = knots[0].t;
 
   // parameters for segment above the range of the spline
 
-  Vec x_high = spline.knots[0].x;
-  Vec y_high = spline.knots[0].y;
-  Vec t_high = spline.knots[0].t;
+  Vec x_high = knots[0].x;
+  Vec y_high = knots[0].y;
+  Vec t_high = knots[0].t;
 
   // find interval and set left and right knot parameters
 
   for (int n = 0; n < numActiveKnots; ++n) {
-    auto const is_left = (in > spline.knots[n].x) && (spline.knots[n].x > x0);
-    x0 = select(is_left, spline.knots[n].x, x0);
-    y0 = select(is_left, spline.knots[n].y, y0);
-    t0 = select(is_left, spline.knots[n].t, t0);
-    s0 = select(is_left, spline.knots[n].s, s0);
+    auto const is_left = (in > knots[n].x) && (knots[n].x > x0);
+    x0 = select(is_left, knots[n].x, x0);
+    y0 = select(is_left, knots[n].y, y0);
+    t0 = select(is_left, knots[n].t, t0);
+    s0 = select(is_left, knots[n].s, s0);
 
-    auto const is_right = (in <= spline.knots[n].x) && (spline.knots[n].x < x1);
-    x1 = select(is_right, spline.knots[n].x, x1);
-    y1 = select(is_right, spline.knots[n].y, y1);
-    t1 = select(is_right, spline.knots[n].t, t1);
-    s1 = select(is_right, spline.knots[n].s, s1);
+    auto const is_right = (in <= knots[n].x) && (knots[n].x < x1);
+    x1 = select(is_right, knots[n].x, x1);
+    y1 = select(is_right, knots[n].y, y1);
+    t1 = select(is_right, knots[n].t, t1);
+    s1 = select(is_right, knots[n].s, s1);
 
-    auto const is_lowest = spline.knots[n].x < x_low;
-    x_low = select(is_lowest, spline.knots[n].x, x_low);
-    y_low = select(is_lowest, spline.knots[n].y, y_low);
-    t_low = select(is_lowest, spline.knots[n].t, t_low);
+    auto const is_lowest = knots[n].x < x_low;
+    x_low = select(is_lowest, knots[n].x, x_low);
+    y_low = select(is_lowest, knots[n].y, y_low);
+    t_low = select(is_lowest, knots[n].t, t_low);
 
-    auto const is_highest = spline.knots[n].x > x_high;
-    x_high = select(is_highest, spline.knots[n].x, x_high);
-    y_high = select(is_highest, spline.knots[n].y, y_high);
-    t_high = select(is_highest, spline.knots[n].t, t_high);
+    auto const is_highest = knots[n].x > x_high;
+    x_high = select(is_highest, knots[n].x, x_high);
+    y_high = select(is_highest, knots[n].y, y_high);
+    t_high = select(is_highest, knots[n].t, t_high);
   }
 
   auto const is_high = x1 == std::numeric_limits<float>::max();
@@ -505,7 +503,7 @@ Spline<Vec, maxNumKnots_>::process_(
 
   // symmetry
 
-  return select(spline.isSymmetric, sign_combine(out, input), out);
+  return select(isSymmetric, sign_combine(out, input), out);
 }
 
 } // namespace adsp
