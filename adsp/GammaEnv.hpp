@@ -91,7 +91,7 @@ struct GammaEnv final
   Scalar envr5[Vec::size()];
   Scalar prevr[Vec::size()];
 
-  Scalar useRms[Vec::size()];
+  Scalar rms[Vec::size()];
 
   struct VecData final
   {
@@ -105,7 +105,7 @@ struct GammaEnv final
     Vec envr5;
     Vec prevr;
     Mask rms;
-    Vec to_db_coef;
+    Vec dBCoef;
 
     VecData(GammaEnv const& gammaEnv)
       : env5(Vec().load_a(gammaEnv.env5))
@@ -113,9 +113,9 @@ struct GammaEnv final
       , envb5(Vec().load_a(gammaEnv.envb5))
       , envr5(Vec().load_a(gammaEnv.envr5))
       , prevr(Vec().load_a(gammaEnv.prevr))
-      , rms(Vec().load_a(gammaEnv.useRms) != 0.0)
+      , rms(Vec().load_a(gammaEnv.rms) != 0.0)
     {
-      to_db_coef = select(
+      dBCoef = select(
         rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
 
       for (int i = 0; i < 4; ++i) {
@@ -199,7 +199,7 @@ struct GammaEnv final
       prevr = select(increasing, resa, prevr);
 
       if constexpr (outputInDB) {
-        return to_db_coef * log(prevr + std::numeric_limits<float>::min());
+        return dBCoef * log(prevr + std::numeric_limits<float>::min());
       }
       else {
         return prevr;
@@ -214,14 +214,14 @@ struct GammaEnv final
     Vec env5;
     Vec enva5;
     Mask rms;
-    Vec to_db_coef;
+    Vec dBCoef;
 
     VecDataSymm(GammaEnv const& gammaEnv)
       : env5(Vec().load_a(gammaEnv.env5))
       , enva5(Vec().load_a(gammaEnv.enva5))
-      , rms(Vec().load_a(gammaEnv.useRms) != 0.0)
+      , rms(Vec().load_a(gammaEnv.rms) != 0.0)
     {
-      to_db_coef = select(
+      dBCoef = select(
         rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
 
       for (int i = 0; i < 4; ++i) {
@@ -269,7 +269,7 @@ struct GammaEnv final
       Vec out = (env[i - 4] + env[i - 3] + env[i - 2] - env[i - 1] - env5);
 
       if constexpr (outputInDB) {
-        return to_db_coef * log(out + std::numeric_limits<float>::min());
+        return dBCoef * log(out + std::numeric_limits<float>::min());
       }
       else {
         return out;
@@ -351,9 +351,9 @@ private:
 };
 
 template<class Vec>
-class GammaEnvSettings
+class GammaEnvSettings final
 {
-  struct ChannelSettings
+  struct ChannelSettings final
   {
 
     double Attack = 0.0;       ///< Attack frequency.
@@ -553,7 +553,7 @@ public:
     if (isChanged) {
       computeCoefficients(channel);
     }
-    processor.useRms[channel] = rms ? 1.0 : 0.0;
+    processor.rms[channel] = rms ? 1.0 : 0.0;
   }
 };
 

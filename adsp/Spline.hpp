@@ -41,20 +41,20 @@ struct Spline final
     Scalar s[Vec::size()];
   };
 
-  struct Knots
+  struct Knots final
   {
     Knot knots[maxNumKnots];
     Knot& operator[](int i) { return knots[i]; }
     Knot const& operator[](int i) const { return knots[i]; }
   };
 
-  struct Settings
+  struct Settings final
   {
     Scalar isSymmetric[Vec::size()];
     Knots knots;
   };
 
-  struct VecKnot
+  struct VecKnot final
   {
     Vec x;
     Vec y;
@@ -72,7 +72,7 @@ struct Spline final
   };
 
   template<int maxNumActiveKnots>
-  struct VecKnots
+  struct VecKnots final
   {
     VecKnot knots[maxNumActiveKnots];
 
@@ -84,6 +84,7 @@ struct Spline final
     }
 
     VecKnot& operator[](int i) { return knots[i]; }
+
     VecKnot const& operator[](int i) const { return knots[i]; }
 
     void update(Knots& storage, int const numActiveKnots) const
@@ -97,7 +98,7 @@ struct Spline final
     }
   };
 
-  struct SmoothingAutomator
+  struct SmoothingAutomator final
   {
     Scalar smoothingAlpha[Vec::size()];
     Knots knots;
@@ -143,7 +144,7 @@ struct Spline final
     }
   };
 
-  struct FakeAutomator
+  struct FakeAutomator final
   {
     template<int maxNumActiveKnots>
     struct VecAutomator
@@ -166,7 +167,7 @@ struct Spline final
   };
 
   template<int maxNumActiveKnots>
-  struct VecSpline
+  struct VecSpline final
   {
     Mask isSymmetric;
     VecKnots<maxNumActiveKnots> knots;
