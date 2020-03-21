@@ -24,7 +24,7 @@ The file `Noise.hpp` implements a (white) noise generator.
 It uses [a SIMD implementation](https://github.com/unevens/xorshift32_16bit_simd) of a [16 bit xorshift32 random number generator](https://b2d-f9r.blogspot.com/2010/08/16-bit-xorshift-rng-now-with-more.html
 ), to generate 4 samples of noise in parallel. 
 
-It is the only part of *adsp* which is not header only, as it needs the file `xorshift32_16bit_simd.c` to be compiled.
+It is the only part of *adsp* which is not header only, as it needs the file `xorshift32_16bit_simd.cpp` to be compiled.
 
 ## OnePole 
 
