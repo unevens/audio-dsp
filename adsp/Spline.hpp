@@ -219,7 +219,7 @@ struct Spline final
                      VecSettings<numActiveKnots>& spline,
                      AutomatorVecData<numActiveKnots> const& automation)
   {
-    return process_<numActiveKnots, typename AutomatorVecData>(
+    return process_<numActiveKnots, AutomatorVecData>(
       input, spline, automation, numActiveKnots);
   }
 
@@ -283,14 +283,14 @@ struct AutoSpline final
   template<int numActiveKnots = maxNumKnots>
   void processBlock(VecBuffer<Vec> const& input, VecBuffer<Vec>& output)
   {
-    spline.processBlock<numActiveKnots, Automator>(input, output, automator);
+    spline.template processBlock<numActiveKnots, Automator>(input, output, automator);
   }
 
   void processBlock(VecBuffer<Vec> const& input,
                     VecBuffer<Vec>& output,
                     int const numActiveKnots)
   {
-    spline.processBlock<Automator>(input, output, numActiveKnots, automator);
+    spline.template processBlock<Automator>(input, output, numActiveKnots, automator);
   }
 };
 
