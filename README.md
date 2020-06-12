@@ -16,7 +16,7 @@ The file `StateVariable.hpp` implements linear and non-linear state variable fil
 
 ## GammaEnv
 
-The file `GammaEnv.hpp` implements [gammaenv](https://github.com/avaneev/gammaenv), an envelope follower by Aleksey Vaneev.
+The file `GammaEnv.hpp` implements [gammaenv](https://github.com/avaneev/gammaenv), an envelope follower by Aleksey Vaneev, with some minor customizations.
 
 ## Noise Generator
 

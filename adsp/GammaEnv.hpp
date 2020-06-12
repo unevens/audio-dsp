@@ -2,8 +2,11 @@
  * Simd implementation of Aleksey Vaneev's https://github.com/avaneev/gammaenv
  *
  * Differences from the original:
- * - does peak/rms computation and can compute the output in dB
+ * - can optionally compute the output in dB
  * - IsIverse is not supported
+ * - has a RMS stage using a simple one pole pass. It can be disabled setting
+ * rmsAlpha to 0, in which case the envelope follower will detect Peaks. (using
+ * the absolute value instead of the square of the amplitude).
  * - Attack and Release are not in seconds but in angular frequency units
  * (2*pi/(samplerate*seconds))
  *
@@ -91,7 +94,8 @@ struct GammaEnv final
   Scalar envr5[Vec::size()];
   Scalar prevr[Vec::size()];
 
-  Scalar rms[Vec::size()];
+  Scalar rmsAlpha[Vec::size()];
+  Scalar rmsState[Vec::size()];
 
   struct VecData final
   {
@@ -105,6 +109,8 @@ struct GammaEnv final
     Vec envr5;
     Vec prevr;
     Mask rms;
+    Vec rmsAlpha;
+    Vec rmsState;
     Vec dBCoef;
 
     VecData(GammaEnv const& gammaEnv)
@@ -113,8 +119,10 @@ struct GammaEnv final
       , envb5(Vec().load_a(gammaEnv.envb5))
       , envr5(Vec().load_a(gammaEnv.envr5))
       , prevr(Vec().load_a(gammaEnv.prevr))
-      , rms(Vec().load_a(gammaEnv.rms) != 0.0)
+      , rmsAlpha(Vec().load_a(gammaEnv.rmsAlpha))
+      , rmsState(Vec().load_a(gammaEnv.rmsState))
     {
+      rms = rmsAlpha != 0.0;
       dBCoef = select(
         rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
 
@@ -143,6 +151,7 @@ struct GammaEnv final
       envb5.store_a(gammaEnv.envb5);
       envr5.store_a(gammaEnv.envr5);
       prevr.store_a(gammaEnv.prevr);
+      rmsState.store_a(gammaEnv.rmsState);
     }
 
     Vec process(Vec in) { return process_<0>(in); }
@@ -152,7 +161,8 @@ struct GammaEnv final
     template<int outputInDB = 0>
     Vec process_(Vec in)
     {
-      in = select(rms, in * in, abs(in));
+      rmsState = rmsState + rmsAlpha * (in * in - rmsState);
+      in = select(rms, rmsState, abs(in));
       env[0] += (in - env[0]) * enva[0];
       env[1] += (env5 - env[1]) * enva[1];
       env[2] += (env[4 * 3 + 1] - env[2]) * enva[2];
@@ -214,13 +224,17 @@ struct GammaEnv final
     Vec env5;
     Vec enva5;
     Mask rms;
+    Vec rmsAlpha;
+    Vec rmsState;
     Vec dBCoef;
 
     VecDataSymm(GammaEnv const& gammaEnv)
       : env5(Vec().load_a(gammaEnv.env5))
       , enva5(Vec().load_a(gammaEnv.enva5))
-      , rms(Vec().load_a(gammaEnv.rms) != 0.0)
+      , rmsAlpha(Vec().load_a(gammaEnv.rmsAlpha))
+      , rmsState(Vec().load_a(gammaEnv.rmsState))
     {
+      rms = rmsAlpha != 0.0;
       dBCoef = select(
         rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
 
@@ -242,6 +256,7 @@ struct GammaEnv final
       }
       env5.store_a(gammaEnv.env5);
       enva5.store_a(gammaEnv.enva5);
+      rmsState.store_a(gammaEnv.rmsState);
     }
 
     Vec process(Vec in) { return process_<0>(in); }
@@ -251,7 +266,8 @@ struct GammaEnv final
     template<int outputInDB = 0>
     Vec process_(Vec in)
     {
-      in = select(rms, in * in, abs(in));
+      rmsState = rmsState + rmsAlpha * (in * in - rmsState);
+      in = select(rms, rmsState, abs(in));
       env[0] += (in - env[0]) * enva[0];
       env[1] += (env5 - env[1]) * enva[1];
       env[2] += (env[4 * 3 + 1] - env[2]) * enva[2];
@@ -290,6 +306,7 @@ struct GammaEnv final
     std::fill_n(&env5[0], Vec::size(), initv);
     std::fill_n(&envr5[0], Vec::size(), initv);
     std::fill_n(&prevr[0], Vec::size(), initv);
+    std::fill_n(&rmsState[0], Vec::size(), initv);
   }
 
   void processBlock(VecBuffer<Vec> const& input,
@@ -527,11 +544,11 @@ public:
   }
 
   void setup(int channel,
-             bool rms,
+             double rmsAlpha,
              double Attack,
              double Release,
-             double AttackDelay = 0.0,
-             double ReleaseDelay = 0.0)
+             double AttackDelay,
+             double ReleaseDelay)
   {
     bool isChanged = false;
     if (settings[channel].Attack != Attack) {
@@ -553,7 +570,7 @@ public:
     if (isChanged) {
       computeCoefficients(channel);
     }
-    processor.rms[channel] = rms ? 1.0 : 0.0;
+    processor.rmsAlpha[channel] = rmsAlpha;
   }
 };
 
