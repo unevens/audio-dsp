@@ -33,13 +33,10 @@ struct StateVariable
     normalizedBandPass
   };
 
-  Scalar smoothingAlpha[Vec::size()];
   Scalar state[2 * Vec::size()];
   Scalar memory[Vec::size()]; // for antisaturator
   Scalar frequency[Vec::size()];
   Scalar resonance[Vec::size()];
-  Scalar frequencyTarget[Vec::size()];
-  Scalar resonanceTarget[Vec::size()];
   Scalar outputMode[Vec::size()];
 
   StateVariable()
@@ -52,8 +49,6 @@ struct StateVariable
 
   void reset()
   {
-    std::copy(frequencyTarget, frequencyTarget + Vec::size(), frequency);
-    std::copy(resonanceTarget, resonanceTarget + Vec::size(), resonance);
     std::fill_n(state, 3 * Vec::size(), 0.0);
   }
 
@@ -69,22 +64,22 @@ struct StateVariable
 
   void setFrequency(Scalar normalized, int channel)
   {
-    frequencyTarget[channel] = tan(pi * normalized);
+    frequency[channel] = tan(pi * normalized);
   }
 
   void setFrequency(Scalar normalized)
   {
-    std::fill_n(frequencyTarget, Vec::size(), tan(pi * normalized));
+    std::fill_n(frequency, Vec::size(), tan(pi * normalized));
   }
 
   void setResonance(Scalar value)
   {
-    std::fill_n(resonanceTarget, Vec::size(), 2.0 * (1.0 - value));
+    std::fill_n(resonance, Vec::size(), 2.0 * (1.0 - value));
   }
 
   void setResonance(Scalar value, int channel)
   {
-    resonanceTarget[channel] = 2.0 * (1.0 - value);
+    resonance[channel] = 2.0 * (1.0 - value);
   }
 
   void setupNormalizedBandPass(Scalar bandwidth,
@@ -92,20 +87,15 @@ struct StateVariable
                                int channel)
   {
     auto [w, r] = normalizedBandPassPrewarp(bandwidth, normalizedFrequency);
-    frequencyTarget[channel] = w;
-    resonanceTarget[channel] = r;
+    frequency[channel] = w;
+    resonance[channel] = r;
   }
 
   void setupNormalizedBandPass(Scalar bandwidth, Scalar normalizedFrequency)
   {
     auto [w, r] = normalizedBandPassPrewarp(bandwidth, normalizedFrequency);
-    std::fill_n(frequencyTarget, Vec::size(), w);
-    std::fill_n(resonanceTarget, Vec::size(), r);
-  }
-
-  void setSmoothingAlpha(Scalar alpha)
-  {
-    std::fill_n(smoothingAlpha, Vec::size(), alpha);
+    std::fill_n(frequency, Vec::size(), w);
+    std::fill_n(resonance, Vec::size(), r);
   }
 
   // linear
@@ -265,14 +255,8 @@ private:
 
     Vec s1 = Vec().load_a(state);
     Vec s2 = Vec().load_a(state + Vec::size());
-
-    Vec g = Vec().load_a(frequency);
-    Vec const g_a = Vec().load_a(frequencyTarget);
-
-    Vec r = Vec().load_a(resonance);
-    Vec const r_a = Vec().load_a(resonanceTarget);
-
-    Vec const alpha = Vec().load_a(smoothingAlpha);
+    Vec const g = Vec().load_a(frequency);
+    Vec const r = Vec().load_a(resonance);
 
     Vec const output_mode = Vec().load_a(outputMode);
     auto const is_high_pass = output_mode == static_cast<int>(Output::highPass);
@@ -283,9 +267,6 @@ private:
     if constexpr (multimodeOutput == static_cast<int>(Output::highPass)) {
 
       for (int i = 0; i < numSamples; ++i) {
-
-        g = alpha * (g - g_a) + g_a;
-        r = alpha * (r - r_a) + r_a;
 
         Vec const in = input[i];
 
@@ -308,9 +289,6 @@ private:
     else {
 
       for (int i = 0; i < numSamples; ++i) {
-
-        g = alpha * (g - g_a) + g_a;
-        r = alpha * (r - r_a) + r_a;
 
         Vec const in = input[i];
 
@@ -352,8 +330,6 @@ private:
 
     s1.store_a(state);
     s2.store_a(state + Vec::size());
-    g.store_a(frequency);
-    r.store_a(resonance);
   }
 
   template<int multimodeOutput,
@@ -376,14 +352,8 @@ private:
     Vec s1 = Vec().load_a(state);
     Vec s2 = Vec().load_a(state + Vec::size());
     Vec u = Vec().load_a(memory);
-
-    Vec g = Vec().load_a(frequency);
-    Vec const g_a = Vec().load_a(frequencyTarget);
-
-    Vec r = Vec().load_a(resonance) - 2.0;
-    Vec const r_a = Vec().load_a(resonanceTarget) - 2.0;
-
-    Vec const alpha = Vec().load_a(smoothingAlpha);
+    Vec const g = Vec().load_a(frequency);
+    Vec const r = Vec().load_a(resonance) - 2.0;
 
     Vec const output_mode = Vec().load_a(outputMode);
     auto const is_high_pass = output_mode == static_cast<int>(Output::highPass);
@@ -395,18 +365,15 @@ private:
 
       saturatorAutomation();
 
-      g = alpha * (g - g_a) + g_a;
-      r = alpha * (r - r_a) + r_a;
-
       Vec const g_r = r + g;
-      Vec g_2 = g + g;
+      Vec const g_2 = g + g;
       Vec const d = 1.0 + g * (g_r);
 
       Vec const in = input[i];
 
       // Mystran's cheap method, solving for antisaturated bandpass "u"
 
-      Vec sigma = saturationGain(u); // saturate(u)/u
+      Vec const sigma = saturationGain(u); // saturate(u)/u
 
       u = (s1 + g * (in - s2)) / (sigma * d + g_2);
 
@@ -420,7 +387,7 @@ private:
         u -= imp / delta;
       }
 
-      Vec band = saturate(u);
+      Vec const band = saturate(u);
 
       s1 = band + band - s1;
 
@@ -461,9 +428,6 @@ private:
     s1.store_a(state);
     s2.store_a(state + Vec::size());
     u.store_a(memory);
-    g.store_a(frequency);
-    r += 2.0;
-    r.store_a(resonance);
   }
 };
 
