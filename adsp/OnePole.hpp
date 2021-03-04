@@ -25,10 +25,8 @@ struct OnePole
   using Scalar = typename ScalarTypes<Vec>::Scalar;
   static constexpr Scalar pi = 3.141592653589793238;
 
-  Scalar smoothingAlpha[Vec::size()];
   Scalar state[Vec::size()];
   Scalar frequency[Vec::size()];
-  Scalar frequencyTarget[Vec::size()];
 
   OnePole()
   {
@@ -39,23 +37,17 @@ struct OnePole
 
   void reset()
   {
-    std::copy(frequencyTarget, frequencyTarget + Vec::size(), frequency);
     std::fill_n(state, Vec::size(), 0.0);
   }
 
   void setFrequency(Scalar normalized, int channel)
   {
-    frequencyTarget[channel] = tan(pi * normalized);
+    frequency[channel] = tan(pi * normalized);
   }
 
   void setFrequency(Scalar normalized)
   {
-    std::fill_n(frequencyTarget, Vec::size(), tan(pi * normalized));
-  }
-
-  void setSmoothingAlpha(Scalar alpha)
-  {
-    std::fill_n(smoothingAlpha, Vec::size(), alpha);
+    std::fill_n(frequency, Vec::size(), tan(pi * normalized));
   }
 
   void lowPass(VecBuffer<Vec> const& input, VecBuffer<Vec>& output)
@@ -76,13 +68,9 @@ private:
     output.setNumSamples(numSamples);
 
     Vec s = Vec().load_a(state);
-    Vec g = Vec().load_a(frequency);
-    Vec const g_a = Vec().load_a(frequencyTarget);
-    Vec const alpha = Vec().load_a(smoothingAlpha);
+    Vec const g = Vec().load_a(frequency);
 
     for (int i = 0; i < numSamples; ++i) {
-
-      g = alpha * (g - g_a) + g_a;
 
       Vec const in = input[i];
 
@@ -100,7 +88,6 @@ private:
     }
 
     s.store_a(state);
-    g.store_a(frequency);
   }
 };
 
