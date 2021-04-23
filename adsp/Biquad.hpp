@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Dario Mambro
+Copyright 2020-2021 Dario Mambro
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -86,8 +86,8 @@ public:
                   double frequency_ = 0.1,
                   double quality_ = 0.79,
                   double gain_ = 0.0)
-    : buffer(7 * Vec::size())
-    , isSetupNeeded(Vec::size(), 0)
+    : buffer(7 * avec::size<Vec>())
+    , isSetupNeeded(avec::size<Vec>(), 0)
   {
     std::fill(filterType.begin(), filterType.end(), filterType_);
     std::fill(frequency.begin(), frequency.end(), frequency_);
@@ -210,7 +210,7 @@ public:
    */
   void setFrequency(double value) override
   {
-    for (int i = 0; i < Vec::size(); ++i) {
+    for (int i = 0; i < avec::size<Vec>(); ++i) {
       isSetupNeeded[i] = frequency[i] != value;
     }
     std::fill(frequency.begin(), frequency.end(), value);
@@ -222,7 +222,7 @@ public:
    */
   void setGain(double value) override
   {
-    for (int i = 0; i < Vec::size(); ++i) {
+    for (int i = 0; i < avec::size<Vec>(); ++i) {
       isSetupNeeded[i] = gain[i] != value;
     }
     std::fill(gain.begin(), gain.end(), value);
@@ -234,7 +234,7 @@ public:
    */
   void setQuality(double value) override
   {
-    for (int i = 0; i < Vec::size(); ++i) {
+    for (int i = 0; i < avec::size<Vec>(); ++i) {
       isSetupNeeded[i] = quality[i] != value;
     }
     std::fill(quality.begin(), quality.end(), value);
@@ -246,7 +246,7 @@ public:
    */
   void setBiquadFilterType(BiquadFilterType value = true) override
   {
-    for (int i = 0; i < Vec::size(); ++i) {
+    for (int i = 0; i < avec::size<Vec>(); ++i) {
       isSetupNeeded[i] = filterType[i] != value;
     }
     std::fill(filterType.begin(), filterType.end(), value);
@@ -384,7 +384,7 @@ public:
    */
   void setup()
   {
-    for (int i = 0; i < Vec::size(); ++i) {
+    for (int i = 0; i < avec::size<Vec>(); ++i) {
       setup(i);
     }
   }
@@ -419,7 +419,7 @@ public:
    */
   void makeReady()
   {
-    for (int i = 0; i < Vec::size(); ++i) {
+    for (int i = 0; i < avec::size<Vec>(); ++i) {
       if (isSetupNeeded[i]) {
         setup(i);
       }
@@ -429,10 +429,10 @@ public:
 private:
   std::vector<int> isSetupNeeded;
   VecBuffer<Vec> buffer;
-  std::array<double, Vec::size()> frequency;
-  std::array<double, Vec::size()> quality;
-  std::array<double, Vec::size()> gain;
-  std::array<BiquadFilterType, Vec::size()> filterType;
+  std::array<double, avec::size<Vec>()> frequency;
+  std::array<double, avec::size<Vec>()> quality;
+  std::array<double, avec::size<Vec>()> gain;
+  std::array<BiquadFilterType, avec::size<Vec>()> filterType;
 };
 
 /**

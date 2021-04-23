@@ -33,11 +33,11 @@ struct StateVariable
     normalizedBandPass
   };
 
-  Scalar state[2 * Vec::size()];
-  Scalar memory[Vec::size()]; // for antisaturator
-  Scalar frequency[Vec::size()];
-  Scalar resonance[Vec::size()];
-  Scalar outputMode[Vec::size()];
+  Scalar state[2 * avec::size<Vec>()];
+  Scalar memory[avec::size<Vec>()]; // for antisaturator
+  Scalar frequency[avec::size<Vec>()];
+  Scalar resonance[avec::size<Vec>()];
+  Scalar outputMode[avec::size<Vec>()];
 
   StateVariable()
   {
@@ -49,7 +49,7 @@ struct StateVariable
 
   void reset()
   {
-    std::fill_n(state, 3 * Vec::size(), 0.0);
+    std::fill_n(state, 3 * avec::size<Vec>(), 0.0);
   }
 
   void setOutput(Output output, int channel)
@@ -59,7 +59,7 @@ struct StateVariable
 
   void setOutput(Output output)
   {
-    std::fill_n(outputMode, Vec::size(), static_cast<int>(output));
+    std::fill_n(outputMode, avec::size<Vec>(), static_cast<int>(output));
   }
 
   void setFrequency(Scalar normalized, int channel)
@@ -69,12 +69,12 @@ struct StateVariable
 
   void setFrequency(Scalar normalized)
   {
-    std::fill_n(frequency, Vec::size(), tan(pi * normalized));
+    std::fill_n(frequency, avec::size<Vec>(), tan(pi * normalized));
   }
 
   void setResonance(Scalar value)
   {
-    std::fill_n(resonance, Vec::size(), 2.0 * (1.0 - value));
+    std::fill_n(resonance, avec::size<Vec>(), 2.0 * (1.0 - value));
   }
 
   void setResonance(Scalar value, int channel)
@@ -94,8 +94,8 @@ struct StateVariable
   void setupNormalizedBandPass(Scalar bandwidth, Scalar normalizedFrequency)
   {
     auto [w, r] = normalizedBandPassPrewarp(bandwidth, normalizedFrequency);
-    std::fill_n(frequency, Vec::size(), w);
-    std::fill_n(resonance, Vec::size(), r);
+    std::fill_n(frequency, avec::size<Vec>(), w);
+    std::fill_n(resonance, avec::size<Vec>(), r);
   }
 
   // linear
@@ -254,7 +254,7 @@ private:
     output.setNumSamples(numSamples);
 
     Vec s1 = Vec().load_a(state);
-    Vec s2 = Vec().load_a(state + Vec::size());
+    Vec s2 = Vec().load_a(state + avec::size<Vec>());
     Vec const g = Vec().load_a(frequency);
     Vec const r = Vec().load_a(resonance);
 
@@ -329,7 +329,7 @@ private:
     }
 
     s1.store_a(state);
-    s2.store_a(state + Vec::size());
+    s2.store_a(state + avec::size<Vec>());
   }
 
   template<int multimodeOutput,
@@ -350,7 +350,7 @@ private:
     output.setNumSamples(numSamples);
 
     Vec s1 = Vec().load_a(state);
-    Vec s2 = Vec().load_a(state + Vec::size());
+    Vec s2 = Vec().load_a(state + avec::size<Vec>());
     Vec u = Vec().load_a(memory);
     Vec const g = Vec().load_a(frequency);
     Vec const r = Vec().load_a(resonance) - 2.0;
@@ -426,7 +426,7 @@ private:
     }
 
     s1.store_a(state);
-    s2.store_a(state + Vec::size());
+    s2.store_a(state + avec::size<Vec>());
     u.store_a(memory);
   }
 };

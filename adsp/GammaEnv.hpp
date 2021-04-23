@@ -84,18 +84,18 @@ struct GammaEnv final
   using Scalar = typename ScalarTypes<Vec>::Scalar;
   using Mask = typename MaskTypes<Vec>::Mask;
 
-  Scalar env[16 * Vec::size()];
-  Scalar enva[4 * Vec::size()];
-  Scalar envb[4 * Vec::size()];
-  Scalar envr[16 * Vec::size()];
-  Scalar env5[Vec::size()];
-  Scalar enva5[Vec::size()];
-  Scalar envb5[Vec::size()];
-  Scalar envr5[Vec::size()];
-  Scalar prevr[Vec::size()];
+  Scalar env[16 * avec::size<Vec>()];
+  Scalar enva[4 * avec::size<Vec>()];
+  Scalar envb[4 * avec::size<Vec>()];
+  Scalar envr[16 * avec::size<Vec>()];
+  Scalar env5[avec::size<Vec>()];
+  Scalar enva5[avec::size<Vec>()];
+  Scalar envb5[avec::size<Vec>()];
+  Scalar envr5[avec::size<Vec>()];
+  Scalar prevr[avec::size<Vec>()];
 
-  Scalar rmsAlpha[Vec::size()];
-  Scalar rmsState[Vec::size()];
+  Scalar rmsAlpha[avec::size<Vec>()];
+  Scalar rmsState[avec::size<Vec>()];
 
   struct VecData final
   {
@@ -127,24 +127,24 @@ struct GammaEnv final
         rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
 
       for (int i = 0; i < 4; ++i) {
-        enva[i] = Vec().load_a(gammaEnv.enva + i * Vec::size());
-        envb[i] = Vec().load_a(gammaEnv.envb + i * Vec::size());
+        enva[i] = Vec().load_a(gammaEnv.enva + i * avec::size<Vec>());
+        envb[i] = Vec().load_a(gammaEnv.envb + i * avec::size<Vec>());
       }
       for (int i = 0; i < 16; ++i) {
-        env[i] = Vec().load_a(gammaEnv.env + i * Vec::size());
-        envr[i] = Vec().load_a(gammaEnv.envr + i * Vec::size());
+        env[i] = Vec().load_a(gammaEnv.env + i * avec::size<Vec>());
+        envr[i] = Vec().load_a(gammaEnv.envr + i * avec::size<Vec>());
       }
     }
 
     void update(GammaEnv& gammaEnv) const
     {
       for (int i = 0; i < 4; ++i) {
-        enva[i].store_a(gammaEnv.enva + i * Vec::size());
-        envb[i].store_a(gammaEnv.envb + i * Vec::size());
+        enva[i].store_a(gammaEnv.enva + i * avec::size<Vec>());
+        envb[i].store_a(gammaEnv.envb + i * avec::size<Vec>());
       }
       for (int i = 0; i < 16; ++i) {
-        env[i].store_a(gammaEnv.env + i * Vec::size());
-        envr[i].store_a(gammaEnv.envr + i * Vec::size());
+        env[i].store_a(gammaEnv.env + i * avec::size<Vec>());
+        envr[i].store_a(gammaEnv.envr + i * avec::size<Vec>());
       }
       env5.store_a(gammaEnv.env5);
       enva5.store_a(gammaEnv.enva5);
@@ -239,20 +239,20 @@ struct GammaEnv final
         rms, 10.0 / 2.30258509299404568402, 20.0 / 2.30258509299404568402);
 
       for (int i = 0; i < 4; ++i) {
-        enva[i] = Vec().load_a(gammaEnv.enva + i * Vec::size());
+        enva[i] = Vec().load_a(gammaEnv.enva + i * avec::size<Vec>());
       }
       for (int i = 0; i < 16; ++i) {
-        env[i] = Vec().load_a(gammaEnv.env + i * Vec::size());
+        env[i] = Vec().load_a(gammaEnv.env + i * avec::size<Vec>());
       }
     }
 
     void update(GammaEnv& gammaEnv) const
     {
       for (int i = 0; i < 4; ++i) {
-        enva[i].store_a(gammaEnv.enva + i * Vec::size());
+        enva[i].store_a(gammaEnv.enva + i * avec::size<Vec>());
       }
       for (int i = 0; i < 16; ++i) {
-        env[i].store_a(gammaEnv.env + i * Vec::size());
+        env[i].store_a(gammaEnv.env + i * avec::size<Vec>());
       }
       env5.store_a(gammaEnv.env5);
       enva5.store_a(gammaEnv.enva5);
@@ -301,12 +301,12 @@ struct GammaEnv final
 
   void reset(double initv = 0.0)
   {
-    std::fill_n(&env[0], 16 * Vec::size(), initv);
-    std::fill_n(&envr[0], 16 * Vec::size(), initv);
-    std::fill_n(&env5[0], Vec::size(), initv);
-    std::fill_n(&envr5[0], Vec::size(), initv);
-    std::fill_n(&prevr[0], Vec::size(), initv);
-    std::fill_n(&rmsState[0], Vec::size(), initv);
+    std::fill_n(&env[0], 16 * avec::size<Vec>(), initv);
+    std::fill_n(&envr[0], 16 * avec::size<Vec>(), initv);
+    std::fill_n(&env5[0], avec::size<Vec>(), initv);
+    std::fill_n(&envr5[0], avec::size<Vec>(), initv);
+    std::fill_n(&prevr[0], avec::size<Vec>(), initv);
+    std::fill_n(&rmsState[0], avec::size<Vec>(), initv);
   }
 
   void processBlock(VecBuffer<Vec> const& input,
@@ -515,7 +515,7 @@ class GammaEnvSettings final
     }
   };
 
-  ChannelSettings settings[Vec::size()];
+  ChannelSettings settings[avec::size<Vec>()];
   GammaEnv<Vec>& processor;
 
 public:
@@ -529,8 +529,8 @@ public:
   {
     settings[channel].init();
     for (int s = 0; s < 4; ++s) {
-      processor.enva[s * Vec::size() + channel] = settings[channel].enva[s];
-      processor.envb[s * Vec::size() + channel] = settings[channel].envb[s];
+      processor.enva[s * avec::size<Vec>() + channel] = settings[channel].enva[s];
+      processor.envb[s * avec::size<Vec>() + channel] = settings[channel].envb[s];
     }
     processor.enva5[channel] = settings[channel].enva5;
     processor.envb5[channel] = settings[channel].envb5;
@@ -538,7 +538,7 @@ public:
 
   void computeCoefficients()
   {
-    for (int c = 0; c < Vec::size(); ++c) {
+    for (int c = 0; c < avec::size<Vec>(); ++c) {
       computeCoefficients(c);
     }
   }

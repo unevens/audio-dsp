@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Dario Mambro
+Copyright 2020-2021 Dario Mambro
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,10 +35,10 @@ struct Spline final
 
   struct Knot final
   {
-    Scalar x[Vec::size()];
-    Scalar y[Vec::size()];
-    Scalar t[Vec::size()];
-    Scalar s[Vec::size()];
+    Scalar x[avec::size<Vec>()];
+    Scalar y[avec::size<Vec>()];
+    Scalar t[avec::size<Vec>()];
+    Scalar s[avec::size<Vec>()];
   };
 
   struct Knots final
@@ -50,7 +50,7 @@ struct Spline final
 
   struct Settings final
   {
-    Scalar isSymmetric[Vec::size()];
+    Scalar isSymmetric[avec::size<Vec>()];
     Knots knots;
   };
 
@@ -100,7 +100,7 @@ struct Spline final
 
   struct SmoothingAutomator final
   {
-    Scalar smoothingAlpha[Vec::size()];
+    Scalar smoothingAlpha[avec::size<Vec>()];
     Knots knots;
 
     template<int maxNumActiveKnots>
@@ -129,7 +129,7 @@ struct Spline final
 
     void setSmoothingAlpha(Scalar alpha)
     {
-      std::fill_n(smoothingAlpha, Vec::size(), alpha);
+      std::fill_n(smoothingAlpha, avec::size<Vec>(), alpha);
     }
 
     void reset(Spline& spline)
@@ -194,12 +194,12 @@ struct Spline final
   Spline()
   {
     AVEC_ASSERT_ALIGNMENT(this, Vec);
-    std::fill_n(settings.isSymmetric, (4 * maxNumKnots + 1) * Vec::size(), 0.0);
+    std::fill_n(settings.isSymmetric, (4 * maxNumKnots + 1) * avec::size<Vec>(), 0.0);
   }
 
   void setIsSymmetric(bool value)
   {
-    std::fill_n(settings.isSymmetric, Vec::size(), value ? 1.0 : 0.0);
+    std::fill_n(settings.isSymmetric, avec::size<Vec>(), value ? 1.0 : 0.0);
   }
 
   void setIsSymmetric(int channel, bool value)

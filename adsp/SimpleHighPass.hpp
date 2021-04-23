@@ -1,5 +1,5 @@
 /*
-Copyright 2020 Dario Mambro
+Copyright 2020-2021 Dario Mambro
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ struct SimpleHighPass final
 {
   using Scalar = typename ScalarTypes<Vec>::Scalar;
 
-  Scalar inputMemory[Vec::size()];
-  Scalar outputMemory[Vec::size()];
-  Scalar alpha[Vec::size()];
+  Scalar inputMemory[avec::size<Vec>()];
+  Scalar outputMemory[avec::size<Vec>()];
+  Scalar alpha[avec::size<Vec>()];
 
   void setHighPassFrequency(Scalar frequency)
   {
-    std::fill_n(alpha, Vec::size(), exp(-frequency));
+    std::fill_n(alpha, avec::size<Vec>(), exp(-frequency));
     if (frequency == 0.0) {
       reset();
     }
@@ -64,7 +64,7 @@ struct SimpleHighPass final
     out_mem.store_a(outputMemory);
   }
 
-  void reset() { std::fill_n(inputMemory, 2 * Vec::size(), 0.0); }
+  void reset() { std::fill_n(inputMemory, 2 * avec::size<Vec>(), 0.0); }
 
   SimpleHighPass()
   {

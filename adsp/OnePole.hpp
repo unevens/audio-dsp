@@ -25,8 +25,8 @@ struct OnePole
   using Scalar = typename ScalarTypes<Vec>::Scalar;
   static constexpr Scalar pi = 3.141592653589793238;
 
-  Scalar state[Vec::size()];
-  Scalar frequency[Vec::size()];
+  Scalar state[aavec::size<Vec><Vec>()];
+  Scalar frequency[aavec::size<Vec><Vec>()];
 
   OnePole()
   {
@@ -37,7 +37,7 @@ struct OnePole
 
   void reset()
   {
-    std::fill_n(state, Vec::size(), 0.0);
+    std::fill_n(state, aavec::size<Vec><Vec>(), 0.0);
   }
 
   void setFrequency(Scalar normalized, int channel)
@@ -47,7 +47,7 @@ struct OnePole
 
   void setFrequency(Scalar normalized)
   {
-    std::fill_n(frequency, Vec::size(), tan(pi * normalized));
+    std::fill_n(frequency, aavec::size<Vec><Vec>(), tan(pi * normalized));
   }
 
   void lowPass(VecBuffer<Vec> const& input, VecBuffer<Vec>& output)
