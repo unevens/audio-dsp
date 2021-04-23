@@ -89,7 +89,7 @@ xorshift32_16bit_simd_i4(uint16_t* state, int* output, int numSamples);
  *
  * For example, allocate a state with:
  *
- * uint16_t* state = alligned_malloc(8*sizeof(uint15_t));
+ * uint16_t* state = alligned_malloc(8*sizeof(uint16_t));
  *
  * Set the seeds with:
  *
@@ -103,7 +103,7 @@ xorshift32_16bit_simd_i4(uint16_t* state, int* output, int numSamples);
  *
  * To generate 8 channels, we need 8 seeds, so we allocate with:
  *
- * uint16_t* state = alligned_malloc(16 * sizeof(uint15_t));
+ * uint16_t* state = alligned_malloc(16 * sizeof(uint16_t));
  *
  * Set the seeds with:
  *
