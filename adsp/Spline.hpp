@@ -30,15 +30,15 @@ struct Spline final
   template<class VecClass, int numKnots, class Automator>
   friend class SplineDispatcher;
 
-  using Scalar = typename ScalarTypes<Vec>::Scalar;
+  using Float = typename ScalarTypes<Vec>::Float;
   using Mask = typename MaskTypes<Vec>::Mask;
 
   struct Knot final
   {
-    Scalar x[avec::size<Vec>()];
-    Scalar y[avec::size<Vec>()];
-    Scalar t[avec::size<Vec>()];
-    Scalar s[avec::size<Vec>()];
+    Float x[avec::size<Vec>()];
+    Float y[avec::size<Vec>()];
+    Float t[avec::size<Vec>()];
+    Float s[avec::size<Vec>()];
   };
 
   struct Knots final
@@ -50,7 +50,7 @@ struct Spline final
 
   struct Settings final
   {
-    Scalar isSymmetric[avec::size<Vec>()];
+    Float isSymmetric[avec::size<Vec>()];
     Knots knots;
   };
 
@@ -100,7 +100,7 @@ struct Spline final
 
   struct SmoothingAutomator final
   {
-    Scalar smoothingAlpha[avec::size<Vec>()];
+    Float smoothingAlpha[avec::size<Vec>()];
     Knots knots;
 
     template<int maxNumActiveKnots>
@@ -127,7 +127,7 @@ struct Spline final
       }
     };
 
-    void setSmoothingAlpha(Scalar alpha)
+    void setSmoothingAlpha(Float alpha)
     {
       std::fill_n(smoothingAlpha, avec::size<Vec>(), alpha);
     }
@@ -256,7 +256,7 @@ struct AutoSpline final
 {
   static constexpr int maxNumKnots = maxNumKnots_;
 
-  using Scalar = typename ScalarTypes<Vec>::Scalar;
+  using Float = typename ScalarTypes<Vec>::Float;
   using Automator = typename Spline<Vec, maxNumKnots>::SmoothingAutomator;
 
   Spline<Vec, maxNumKnots> spline;

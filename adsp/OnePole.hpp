@@ -22,11 +22,11 @@ namespace adsp {
 template<class Vec>
 struct OnePole
 {
-  using Scalar = typename ScalarTypes<Vec>::Scalar;
-  static constexpr Scalar pi = 3.141592653589793238;
+  using Float = typename ScalarTypes<Vec>::Float;
+  static constexpr Float pi = 3.141592653589793238;
 
-  Scalar state[aavec::size<Vec><Vec>()];
-  Scalar frequency[aavec::size<Vec><Vec>()];
+  Float state[aavec::size<Vec><Vec>()];
+  Float frequency[aavec::size<Vec><Vec>()];
 
   OnePole()
   {
@@ -40,12 +40,12 @@ struct OnePole
     std::fill_n(state, aavec::size<Vec><Vec>(), 0.0);
   }
 
-  void setFrequency(Scalar normalized, int channel)
+  void setFrequency(Float normalized, int channel)
   {
     frequency[channel] = tan(pi * normalized);
   }
 
-  void setFrequency(Scalar normalized)
+  void setFrequency(Float normalized)
   {
     std::fill_n(frequency, aavec::size<Vec><Vec>(), tan(pi * normalized));
   }

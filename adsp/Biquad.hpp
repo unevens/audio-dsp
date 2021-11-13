@@ -40,7 +40,7 @@ constexpr int numBiquadFilterTypes =
  * size. The only methods included in this interface are those to set and get
  * the state and settings of the filter. @see VecBiquadFilter
  */
-template<typename Scalar>
+template<typename Float>
 class VecBiquadFilterInterface
 {
 public:
@@ -59,8 +59,8 @@ public:
   virtual double getGain(int channel) const = 0;
   virtual double getQuality(int channel) const = 0;
   virtual BiquadFilterType getBiquadFilterType(int channel) const = 0;
-  virtual void setState(int channel, Scalar state0, Scalar state1) = 0;
-  virtual void getState(int channel, Scalar& state0, Scalar& state1) const = 0;
+  virtual void setState(int channel, Float state0, Float state1) = 0;
+  virtual void getState(int channel, Float& state0, Float& state1) const = 0;
 };
 
 /**
@@ -68,10 +68,10 @@ public:
  */
 template<class Vec>
 class VecBiquadFilter final
-  : public VecBiquadFilterInterface<typename ScalarTypes<Vec>::Scalar>
+  : public VecBiquadFilterInterface<typename ScalarTypes<Vec>::Float>
 {
 public:
-  using Scalar = typename ScalarTypes<Vec>::Scalar;
+  using Float = typename ScalarTypes<Vec>::Float;
 
   /**
    * Constructor.
@@ -395,7 +395,7 @@ public:
    * @param state0 the first number of the state of the filter
    * @param state1 the second number of the state of the filter
    */
-  void setState(int channel, Scalar state0, Scalar state1) override
+  void setState(int channel, Float state0, Float state1) override
   {
     buffer[5][channel] = state0;
     buffer[6][channel] = state1;
@@ -407,7 +407,7 @@ public:
    * @param state0 the first number of the state of the filter
    * @param state1 the second number of the state of the filter
    */
-  void getState(int channel, Scalar& state0, Scalar& state1) const override
+  void getState(int channel, Float& state0, Float& state1) const override
   {
     state0 = buffer[5][channel];
     state1 = buffer[6][channel];
@@ -438,15 +438,15 @@ private:
 /**
  * A simple biquad filter working with InterleavedBuffers.
  */
-template<typename Scalar>
+template<typename Float>
 class BiquadFilter final
 {
-  using Vec8 = typename SimdTypes<Scalar>::Vec8;
-  using Vec4 = typename SimdTypes<Scalar>::Vec4;
-  using Vec2 = typename SimdTypes<Scalar>::Vec2;
-  static constexpr bool VEC8_AVAILABLE = SimdTypes<Scalar>::VEC8_AVAILABLE;
-  static constexpr bool VEC4_AVAILABLE = SimdTypes<Scalar>::VEC4_AVAILABLE;
-  static constexpr bool VEC2_AVAILABLE = SimdTypes<Scalar>::VEC2_AVAILABLE;
+  using Vec8 = typename SimdTypes<Float>::Vec8;
+  using Vec4 = typename SimdTypes<Float>::Vec4;
+  using Vec2 = typename SimdTypes<Float>::Vec2;
+  static constexpr bool VEC8_AVAILABLE = SimdTypes<Float>::VEC8_AVAILABLE;
+  static constexpr bool VEC4_AVAILABLE = SimdTypes<Float>::VEC4_AVAILABLE;
+  static constexpr bool VEC2_AVAILABLE = SimdTypes<Float>::VEC2_AVAILABLE;
 
   int numChannels;
 
@@ -527,7 +527,7 @@ public:
     : numChannels(numChannels)
   {
     int num2, num4, num8;
-    avec::getNumOfVecBuffersUsedByInterleavedBuffer<Scalar>(
+    avec::getNumOfVecBuffersUsedByInterleavedBuffer<Float>(
       numChannels, num2, num4, num8);
     filters8.reserve(num8);
     filters4.reserve(num4);
@@ -553,8 +553,8 @@ public:
    * @param numSamples the number of samples to process
    * @param numChannelsToProcess the number of channels to process
    */
-  void processBlock(InterleavedBuffer<Scalar> const& input,
-                    InterleavedBuffer<Scalar>& output,
+  void processBlock(InterleavedBuffer<Float> const& input,
+                    InterleavedBuffer<Float>& output,
                     int numSamples,
                     int numChannelsToProcess)
   {
@@ -654,8 +654,8 @@ public:
     assert(std::abs(dstChannel - srChannel) <= numChannelsToMove);
 
     for (int i = 0; i < numChannelsToMove; ++i) {
-      Scalar state0, state1;
-      avec::InterleavedChannel<Scalar>::doAtChannel(
+      Float state0, state1;
+      avec::InterleavedChannel<Float>::doAtChannel(
         i + srcChannel,
         filters2,
         filters4,
@@ -663,7 +663,7 @@ public:
         [&](auto& filter, int channel, int numChannels) {
           filter.getState(channel, state0, state1);
         });
-      avec::InterleavedChannel<Scalar>::doAtChannel(
+      avec::InterleavedChannel<Float>::doAtChannel(
         i + dstChannel,
         filters2,
         filters4,
@@ -682,7 +682,7 @@ public:
    */
   void setFrequency(int channel, double value)
   {
-    avec::InterleavedChannel<Scalar>::doAtChannel(
+    avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,
@@ -699,7 +699,7 @@ public:
    */
   void setGain(int channel, double value)
   {
-    avec::InterleavedChannel<Scalar>::doAtChannel(
+    avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,
@@ -716,7 +716,7 @@ public:
    */
   void setQuality(int channel, double value)
   {
-    avec::InterleavedChannel<Scalar>::doAtChannel(
+    avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,
@@ -733,7 +733,7 @@ public:
    */
   void setBiquadFilterType(int channel, BiquadFilterType value)
   {
-    avec::InterleavedChannel<Scalar>::doAtChannel(
+    avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,
@@ -818,7 +818,7 @@ public:
    */
   double getFrequency(int channel) const
   {
-    return avec::InterleavedChannel<Scalar>::doAtChannel(
+    return avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,
@@ -835,7 +835,7 @@ public:
    */
   double getGain(int channel) const
   {
-    return avec::InterleavedChannel<Scalar>::doAtChannel(
+    return avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,
@@ -852,7 +852,7 @@ public:
    */
   double getQuality(int channel) const
   {
-    return avec::InterleavedChannel<Scalar>::doAtChannel(
+    return avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,
@@ -869,7 +869,7 @@ public:
    */
   BiquadFilterType getBiquadFilterType(int channel) const
   {
-    return avec::InterleavedChannel<Scalar>::doAtChannel(
+    return avec::InterleavedChannel<Float>::doAtChannel(
       channel,
       filters2,
       filters4,

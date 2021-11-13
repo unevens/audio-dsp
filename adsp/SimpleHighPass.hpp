@@ -22,13 +22,13 @@ namespace adsp {
 template<class Vec>
 struct SimpleHighPass final
 {
-  using Scalar = typename ScalarTypes<Vec>::Scalar;
+  using Float = typename ScalarTypes<Vec>::Float;
 
-  Scalar inputMemory[avec::size<Vec>()];
-  Scalar outputMemory[avec::size<Vec>()];
-  Scalar alpha[avec::size<Vec>()];
+  Float inputMemory[avec::size<Vec>()];
+  Float outputMemory[avec::size<Vec>()];
+  Float alpha[avec::size<Vec>()];
 
-  void setHighPassFrequency(Scalar frequency)
+  void setHighPassFrequency(Float frequency)
   {
     std::fill_n(alpha, avec::size<Vec>(), exp(-frequency));
     if (frequency == 0.0) {
@@ -36,7 +36,7 @@ struct SimpleHighPass final
     }
   }
 
-  void setHighPassFrequency(Scalar frequency, int channel)
+  void setHighPassFrequency(Float frequency, int channel)
   {
     alpha[channel] = exp(-frequency);
     if (frequency == 0.0) {

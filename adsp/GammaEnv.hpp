@@ -81,21 +81,21 @@ namespace adsp {
 template<class Vec>
 struct GammaEnv final
 {
-  using Scalar = typename ScalarTypes<Vec>::Scalar;
+  using Float = typename ScalarTypes<Vec>::Float;
   using Mask = typename MaskTypes<Vec>::Mask;
 
-  Scalar env[16 * avec::size<Vec>()];
-  Scalar enva[4 * avec::size<Vec>()];
-  Scalar envb[4 * avec::size<Vec>()];
-  Scalar envr[16 * avec::size<Vec>()];
-  Scalar env5[avec::size<Vec>()];
-  Scalar enva5[avec::size<Vec>()];
-  Scalar envb5[avec::size<Vec>()];
-  Scalar envr5[avec::size<Vec>()];
-  Scalar prevr[avec::size<Vec>()];
+  Float env[16 * avec::size<Vec>()];
+  Float enva[4 * avec::size<Vec>()];
+  Float envb[4 * avec::size<Vec>()];
+  Float envr[16 * avec::size<Vec>()];
+  Float env5[avec::size<Vec>()];
+  Float enva5[avec::size<Vec>()];
+  Float envb5[avec::size<Vec>()];
+  Float envr5[avec::size<Vec>()];
+  Float prevr[avec::size<Vec>()];
 
-  Scalar rmsAlpha[avec::size<Vec>()];
-  Scalar rmsState[avec::size<Vec>()];
+  Float rmsAlpha[avec::size<Vec>()];
+  Float rmsState[avec::size<Vec>()];
 
   struct VecData final
   {

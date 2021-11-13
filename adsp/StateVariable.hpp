@@ -22,8 +22,8 @@ namespace adsp {
 template<class Vec>
 struct StateVariable
 {
-  using Scalar = typename ScalarTypes<Vec>::Scalar;
-  static constexpr Scalar pi = 3.141592653589793238;
+  using Float = typename ScalarTypes<Vec>::Float;
+  static constexpr Float pi = 3.141592653589793238;
 
   enum class Output
   {
@@ -33,11 +33,11 @@ struct StateVariable
     normalizedBandPass
   };
 
-  Scalar state[2 * avec::size<Vec>()];
-  Scalar memory[avec::size<Vec>()]; // for antisaturator
-  Scalar frequency[avec::size<Vec>()];
-  Scalar resonance[avec::size<Vec>()];
-  Scalar outputMode[avec::size<Vec>()];
+  Float state[2 * avec::size<Vec>()];
+  Float memory[avec::size<Vec>()]; // for antisaturator
+  Float frequency[avec::size<Vec>()];
+  Float resonance[avec::size<Vec>()];
+  Float outputMode[avec::size<Vec>()];
 
   StateVariable()
   {
@@ -62,28 +62,28 @@ struct StateVariable
     std::fill_n(outputMode, avec::size<Vec>(), static_cast<int>(output));
   }
 
-  void setFrequency(Scalar normalized, int channel)
+  void setFrequency(Float normalized, int channel)
   {
     frequency[channel] = tan(pi * normalized);
   }
 
-  void setFrequency(Scalar normalized)
+  void setFrequency(Float normalized)
   {
     std::fill_n(frequency, avec::size<Vec>(), tan(pi * normalized));
   }
 
-  void setResonance(Scalar value)
+  void setResonance(Float value)
   {
     std::fill_n(resonance, avec::size<Vec>(), 2.0 * (1.0 - value));
   }
 
-  void setResonance(Scalar value, int channel)
+  void setResonance(Float value, int channel)
   {
     resonance[channel] = 2.0 * (1.0 - value);
   }
 
-  void setupNormalizedBandPass(Scalar bandwidth,
-                               Scalar normalizedFrequency,
+  void setupNormalizedBandPass(Float bandwidth,
+                               Float normalizedFrequency,
                                int channel)
   {
     auto [w, r] = normalizedBandPassPrewarp(bandwidth, normalizedFrequency);
@@ -91,7 +91,7 @@ struct StateVariable
     resonance[channel] = r;
   }
 
-  void setupNormalizedBandPass(Scalar bandwidth, Scalar normalizedFrequency)
+  void setupNormalizedBandPass(Float bandwidth, Float normalizedFrequency)
   {
     auto [w, r] = normalizedBandPassPrewarp(bandwidth, normalizedFrequency);
     std::fill_n(frequency, avec::size<Vec>(), w);
@@ -233,17 +233,17 @@ struct StateVariable
   }
 
 private:
-  static std::pair<Scalar, Scalar> normalizedBandPassPrewarp(
-    Scalar bandwidth,
-    Scalar normalizedFrequency)
+  static std::pair<Float, Float> normalizedBandPassPrewarp(
+    Float bandwidth,
+    Float normalizedFrequency)
   {
-    Scalar const b = pow(2.0, bandwidth * 0.5);
-    Scalar const n0 = normalizedFrequency / b;
-    Scalar const n1 = std::min(1.0, normalizedFrequency * b);
-    Scalar const w0 = tan(pi * n0);
-    Scalar const w1 = tan(pi * n1);
-    Scalar const w = sqrt(w0 * w1);
-    Scalar const r = 0.5 * w1 / w0;
+    Float const b = pow(2.0, bandwidth * 0.5);
+    Float const n0 = normalizedFrequency / b;
+    Float const n1 = std::min(1.0, normalizedFrequency * b);
+    Float const w0 = tan(pi * n0);
+    Float const w1 = tan(pi * n1);
+    Float const w = sqrt(w0 * w1);
+    Float const r = 0.5 * w1 / w0;
     return { w, r };
   }
 
