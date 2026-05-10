@@ -21,14 +21,14 @@ namespace adsp {
 
 /**
  * A class to evaluate a cubic Hermite spline with a given number of knots.
+ *
+ * The number of *active* knots is a runtime parameter. The class-level
+ * `maxNumKnots` template parameter only sizes the static knot storage.
  */
 template<class Vec, int maxNumKnots_>
 struct Spline final
 {
   static constexpr int maxNumKnots = maxNumKnots_;
-
-  template<class VecClass, int numKnots, class Automator>
-  friend class SplineDispatcher;
 
   using Float = typename ScalarTypes<Vec>::Float;
   using Mask = typename MaskTypes<Vec>::Mask;
@@ -71,20 +71,18 @@ struct Spline final
     {}
   };
 
-  template<int maxNumActiveKnots>
   struct VecKnots final
   {
-    VecKnot knots[maxNumActiveKnots];
+    VecKnot knots[maxNumKnots];
 
     VecKnots(Knots const& storage)
     {
-      for (int i = 0; i < maxNumActiveKnots; ++i) {
+      for (int i = 0; i < maxNumKnots; ++i) {
         knots[i] = VecKnot(storage[i]);
       }
     }
 
     VecKnot& operator[](int i) { return knots[i]; }
-
     VecKnot const& operator[](int i) const { return knots[i]; }
 
     void update(Knots& storage, int const numActiveKnots) const
@@ -103,11 +101,10 @@ struct Spline final
     Float smoothingAlpha[avec::size<Vec>()];
     Knots knots;
 
-    template<int maxNumActiveKnots>
     struct VecAutomator
     {
       using Automator = SmoothingAutomator;
-      VecKnots<maxNumActiveKnots> knots;
+      VecKnots knots;
       Vec alpha;
 
       VecAutomator(SmoothingAutomator const& automator)
@@ -115,8 +112,7 @@ struct Spline final
         , alpha(Vec().load_a(automator.smoothingAlpha))
       {}
 
-      void automate(VecKnots<maxNumActiveKnots>& values,
-                    int const numActiveKnots) const
+      void automate(VecKnots& values, int const numActiveKnots) const
       {
         for (int n = 0; n < numActiveKnots; ++n) {
           values[n].x = alpha * (values[n].x - knots[n].x) + knots[n].x;
@@ -137,40 +133,27 @@ struct Spline final
       std::copy(&knots[0], &knots[0] + maxNumKnots, &spline.settings.knots[0]);
     }
 
-    template<int maxNumActiveKnots>
-    VecAutomator<maxNumActiveKnots> getVecAutomator() const
-    {
-      return VecAutomator<maxNumActiveKnots>(*this);
-    }
+    VecAutomator getVecAutomator() const { return VecAutomator(*this); }
   };
 
   struct FakeAutomator final
   {
-    template<int maxNumActiveKnots>
     struct VecAutomator
     {
       using Automator = FakeAutomator;
-      void automate(VecKnots<maxNumActiveKnots>& values,
-                    int const numActiveKnots) const
-      {}
+      void automate(VecKnots&, int) const {}
     };
 
-    void reset(Spline& spline) const {}
-
-    template<int maxNumActiveKnots>
-    VecAutomator<maxNumActiveKnots> getVecAutomator() const
-    {
-      return {};
-    }
+    void reset(Spline&) const {}
+    VecAutomator getVecAutomator() const { return {}; }
 
     FakeAutomator() = default;
   };
 
-  template<int maxNumActiveKnots>
   struct VecSpline final
   {
     Mask isSymmetric;
-    VecKnots<maxNumActiveKnots> knots;
+    VecKnots knots;
 
     VecSpline(Settings const& settings)
       : isSymmetric(Vec().load_a(settings.isSymmetric) != 0.0)
@@ -182,11 +165,10 @@ struct Spline final
       knots.update(spline.settings.knots, numActiveKnots);
     }
 
-    template<template<int>
-             class AutomatorVecData = FakeAutomator::template VecAutomator>
+    template<class AutomatorVecData = typename FakeAutomator::VecAutomator>
     Vec process(Vec const input,
-                AutomatorVecData<maxNumActiveKnots> const& automation,
-                int const numActiveKnots = maxNumActiveKnots);
+                AutomatorVecData const& automation,
+                int const numActiveKnots);
   };
 
   Settings settings;
@@ -194,7 +176,8 @@ struct Spline final
   Spline()
   {
     AVEC_ASSERT_ALIGNMENT(this, Vec);
-    std::fill_n(settings.isSymmetric, (4 * maxNumKnots + 1) * avec::size<Vec>(), 0.0);
+    std::fill_n(
+      settings.isSymmetric, (4 * maxNumKnots + 1) * avec::size<Vec>(), 0.0);
   }
 
   void setIsSymmetric(bool value)
@@ -207,44 +190,18 @@ struct Spline final
     settings.isSymmetric[channel] = value ? 1.0 : 0.0;
   }
 
-  template<int numActiveKnots = maxNumKnots, class Automator = FakeAutomator>
-  void processBlock(VecBuffer<Vec> const& input,
-                    VecBuffer<Vec>& output,
-                    Automator const& automator = {})
-  {
-    processBlock_<numActiveKnots, Automator>(
-      input, output, numActiveKnots, automator);
-  }
-
   template<class Automator = FakeAutomator>
   void processBlock(VecBuffer<Vec> const& input,
                     VecBuffer<Vec>& output,
                     int const numActiveKnots,
-                    Automator const& automator = {})
-  {
-    processBlock_<maxNumKnots, Automator>(
-      input, output, numActiveKnots, automator);
-  }
+                    Automator const& automator = {});
 
-  template<int maxNumActiveKnots>
-  void update(VecSpline<maxNumActiveKnots> const& spline,
-              int const numActiveKnots)
+  void update(VecSpline const& spline, int const numActiveKnots)
   {
     spline.knots.update(settings.knots, numActiveKnots);
   }
 
-  template<int maxNumActiveKnots>
-  VecSpline<maxNumActiveKnots> getVecSpline() const
-  {
-    return VecSpline<maxNumActiveKnots>(settings);
-  }
-
-private:
-  template<int maxNumActiveKnots, class Automator = FakeAutomator>
-  void processBlock_(VecBuffer<Vec> const& input,
-                     VecBuffer<Vec>& output,
-                     int const numActiveKnots,
-                     Automator const& automator = {});
+  VecSpline getVecSpline() const { return VecSpline(settings); }
 };
 
 /**
@@ -264,13 +221,6 @@ struct AutoSpline final
 
   void reset() { automator.reset(spline); }
 
-  template<int numActiveKnots = maxNumKnots>
-  void processBlock(VecBuffer<Vec> const& input, VecBuffer<Vec>& output)
-  {
-    spline.template processBlock<numActiveKnots, Automator>(
-      input, output, automator);
-  }
-
   void processBlock(VecBuffer<Vec> const& input,
                     VecBuffer<Vec>& output,
                     int const numActiveKnots)
@@ -280,91 +230,17 @@ struct AutoSpline final
   }
 };
 
-/**
- * A class to use the version of the Spline::processBlock method which takes the
- * number of active knots as a template argument even when the number of
- * knots is not known at compile time.
- */
-template<class Vec,
-         int maxNumKnots,
-         class Automator = typename Spline<Vec, maxNumKnots>::FakeAutomator>
-class SplineDispatcher final
-{
-  using Call = void (Spline<Vec, maxNumKnots>::*)(VecBuffer<Vec> const&,
-                                                  VecBuffer<Vec>&,
-                                                  int const,
-                                                  Automator const&);
-
-  std::array<Call, maxNumKnots + 1> calls;
-
-  template<int numActiveKnots>
-  struct Initializer
-  {
-    static void initialize(Call* calls)
-    {
-      calls[numActiveKnots] =
-        &Spline<Vec, maxNumKnots>::template processBlock_<numActiveKnots,
-                                                          Automator>;
-      if constexpr (numActiveKnots > 0) {
-        Initializer<numActiveKnots - 1>::initialize(calls);
-      }
-    }
-  };
-
-public:
-  SplineDispatcher() { Initializer<maxNumKnots>::initialize(&calls[0]); }
-
-  void processBlock(Spline<Vec, maxNumKnots>& spline,
-                    VecBuffer<Vec> const& input,
-                    VecBuffer<Vec>& output,
-                    int const numActiveKnots,
-                    Automator const& automator = {})
-  {
-    (spline.*(calls[numActiveKnots]))(input, output, numActiveKnots, automator);
-  }
-};
-
-/**
- * A class to use the version of the AutoSpline::processBlock method which takes
- * the number of active knots as a template argument even when the number of
- * knots is not known at compile time.
- */
-template<class Vec, int maxNumKnots>
-class AutoSplineDispatcher final
-{
-  SplineDispatcher<Vec,
-                   maxNumKnots,
-                   typename Spline<Vec, maxNumKnots>::SmoothingAutomator>
-    dispatcher;
-
-public:
-  void processBlock(AutoSpline<Vec, maxNumKnots>& spline,
-                    VecBuffer<Vec> const& input,
-                    VecBuffer<Vec>& output,
-                    int const numActiveKnots)
-  {
-    dispatcher.processBlock(
-      spline.spline, input, output, numActiveKnots, spline.automator);
-  }
-};
-
 // implementation
 
 template<class Vec, int maxNumKnots_>
-template<int maxNumActiveKnots_, class Automator>
+template<class Automator>
 inline void
-Spline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
-                                         VecBuffer<Vec>& output,
-                                         int const numActiveKnots,
-                                         Automator const& automator)
-
+Spline<Vec, maxNumKnots_>::processBlock(VecBuffer<Vec> const& input,
+                                        VecBuffer<Vec>& output,
+                                        int const numActiveKnots,
+                                        Automator const& automator)
 {
-  constexpr int maxNumActiveKnots = std::max(1, maxNumActiveKnots_);
-
-  static_assert(maxNumActiveKnots <= maxNumKnots,
-                "maxNumActiveKnots must be less or equal to maxNumKnots.");
-
-  assert(numActiveKnots <= maxNumActiveKnots);
+  assert(numActiveKnots <= maxNumKnots);
 
   int const numSamples = input.getNumSamples();
   output.setNumSamples(numSamples);
@@ -376,12 +252,11 @@ Spline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
     return;
   }
 
-  auto spline = getVecSpline<maxNumActiveKnots>();
-  auto automation = automator.template getVecAutomator<maxNumActiveKnots>();
+  auto spline = getVecSpline();
+  auto automation = automator.getVecAutomator();
 
   for (int i = 0; i < numSamples; ++i) {
-    output[i] = spline.template process<Automator::template VecAutomator>(
-      input[i], automation, numActiveKnots);
+    output[i] = spline.process(input[i], automation, numActiveKnots);
   }
 
   if constexpr (!std::is_same_v<Automator, FakeAutomator>) {
@@ -390,19 +265,17 @@ Spline<Vec, maxNumKnots_>::processBlock_(VecBuffer<Vec> const& input,
 }
 
 template<class Vec, int maxNumKnots_>
-template<int maxNumActiveKnots>
-template<template<int> class AutomatorVecData>
+template<class AutomatorVecData>
 inline Vec
-Spline<Vec, maxNumKnots_>::VecSpline<maxNumActiveKnots>::process(
+Spline<Vec, maxNumKnots_>::VecSpline::process(
   Vec const input,
-  AutomatorVecData<maxNumActiveKnots> const& automation,
+  AutomatorVecData const& automation,
   int const numActiveKnots)
 {
   Vec const in = select(isSymmetric, abs(input), input);
 
-  if constexpr (!std::is_same_v<
-                  typename AutomatorVecData<maxNumActiveKnots>::Automator,
-                  FakeAutomator>) {
+  if constexpr (!std::is_same_v<typename AutomatorVecData::Automator,
+                                FakeAutomator>) {
     automation.automate(knots, numActiveKnots);
   }
 
